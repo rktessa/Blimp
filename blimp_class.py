@@ -1,5 +1,6 @@
 
 import warnings
+import time
 import numpy as np
 from numpy.linalg import norm
 from quaternion import Quaternion
@@ -179,3 +180,37 @@ def print_calibration():
     
     ax.scatter(result[:,0], result[:,1], result[:,2], marker='o', color='g')
     plt.show()
+
+
+def orientation_initial(raw_acc, raw_gyr, raw_mag):
+    q0 = Quaternion(0, 0, 0, 1)
+    mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1)
+    roll_vec = []
+    pitch_vec = []
+    yaw_vec = []
+
+    time_zero = time.perf_counter()
+    time_start = time.perf_counter()
+    while  time.perf_counter() < (time_start +10):
+        #Aquisizione magnetometro e calibrazione dei dati:
+        mag = calibration(raw_mag)
+        #Creazione vettore input per classe madgwick
+        accelerometer, gyroscope, magnetometer = np.asarray(raw_acc), np.asarray(raw_gyr), np.asarray(mag)
+        time_fine = time.perf_counter()
+        #setting the variable frequency of updateof Madgwick alghorithm
+        mad.samplePeriod = time_fine - time_zero
+        quaternion = mad.update(gyroscope, accelerometer, magnetometer)
+        time_zero = time.perf_counter()
+        quat = Quaternion(quaternion)
+        #print("res = ", str(quaternion))
+        roll, pitch, yaw = quat.to_euler123()
+        print(roll, pitch, yaw)
+        roll_vec.append(roll)
+        pitch_vec.append(pitch)
+        yaw_vec.append(yaw)
+    
+    roll_0 = sum(roll_vec[-40 :])/40 #perform the mean of the last 20 element
+    pitch_0 = sum(pitch_vec[-40 :])/40
+    yaw_0 = sum(yaw_vec[-40 :])/40
+    
+    return roll_0, pitch_0, yaw_0
