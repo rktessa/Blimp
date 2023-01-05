@@ -11,5 +11,5 @@ In "kalman_blimp_test_01.py" I am developing the kalman filter for heading estim
 
 The main program then function in this way: 
 
-![Alt text](C:\Volume_D\Programming\Blimp_git\Blimp\alg_flow.jpg?raw=true "Scheme of the  Alghorithm ") 
+![Alt text](https://github.com/rktessa/Blimp/blob/main/alg_flow.jpg?raw=true "Scheme of the  Alghorithm ") 
 
