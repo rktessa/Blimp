@@ -13,3 +13,10 @@ The main program then function in this way:
 
 ![Alt text](https://github.com/rktessa/Blimp/blob/main/alg_flow.jpg?raw=true "Scheme of the  Alghorithm ") 
 
+Important aspects to undestand for Kalman filter implementation:
+
+- orientation of IMU (in particular due to gravity) impact Kalman? 
+
+- calculation of sensor accuracy value for determining the variance of sensors. 
+
+- smooth the value of Kalman filter, see RTS. 
