@@ -6,6 +6,8 @@
 
 import math
 import numpy as np
+from filterpy.common import Q_discrete_white_noise
+from blimp_class import misuration
 #from filterpy.kalman import predict, update
 
 # Definition of the matrices used in 
@@ -57,9 +59,9 @@ class kalman_blimp:
         # measured by sonar, madgwick and uwbz
         x = np.array([[self.x_pos, 0.0, self.y_pos, 0.0, self.z_pos, 0.0, self.phi_pos, 0.0]]).T
 
-        F = np.array([[math.cos(phi), (self.dt*self.dt)/2.0, -math.sin(phi), 0.0, 0.0, 0.0, 0.0, 0.0 ],
+        F = np.array([[1.0, (self.dt*self.dt)/2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
                     [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
-                    [math.sin(phi), 0.0, math.cos(phi), (self.dt*self.dt)/2.0, 0.0, 0.0, 0.0, 0.0 ],
+                    [0.0, 0.0, 1.0, (self.dt*self.dt)/2.0, 0.0, 0.0, 0.0, 0.0 ],
                     [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 ],
                     [0.0, 0.0, 0.0, 0.0, 1.0, (self.dt*self.dt)/2.0, 0.0, 0.0 ],
                     [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 ], 
@@ -73,7 +75,7 @@ class kalman_blimp:
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 1.0/self.m],
                     [0.0, 0.0, 0.0],
-                    [self.xR*self.dt/self.I_z, self.xL*self.dt/self.I_z, 0.0]])
+                    [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])
 
         u_t = np.array([[self.Fl, self.Fr, self.Fu]]).T #input vector depending on force
 
@@ -81,8 +83,13 @@ class kalman_blimp:
         
         #State covariance matrix
         P = np.diag([2.0, 0.1, 2.0, 0.1, 2.0, 0.1, 360.0, 10.0 ])
+        
+        # Q è calcolata a caso al momento
+        Q =  np.diag([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 ])
     
-        return F, B, u_t ,x, P
+        H = np.diag([1., 1., 1., 1., 1., 1., 1., 1. ])
+        
+        return F, B, u_t ,x, P, Q, H
 
     def predict(self, x, P, F=1, Q=0, u=0, B=1, alpha=1.):
         """
@@ -131,11 +138,24 @@ class kalman_blimp:
 
         if np.isscalar(F):
             F = np.array(F)
+
         phi = x[6]
-        x = np.dot(F, x) + np.dot(B, u)
+        R = np.array([[math.cos(phi), 0., - math.sin(phi), 0., 0., 0., 0., 0.],
+                      [0., 1., 0, 0., 0., 0., 0., 0.,],
+                      [math.sin(phi), 0, math.cos(phi), 0. , 0., 0., 0., 0.],
+                      [0., 0., 0., 1., 0., 0., 0., 0.],
+                      [0., 0., 0., 0., 1., 0., 0., 0.],
+                      [0., 0., 0., 0., 0., 1., 0., 0.],
+                      [0., 0., 0., 0., 0., 0., 1., 0.],
+                      [0., 0., 0., 0., 0., 0., 0., 1.]])
+        x_pre = np.dot(R,F)
+        x = np.dot(x_pre, x) + np.dot(B, u)
         P = (alpha * alpha) * np.dot(np.dot(F, P), F.T) + Q
-        
-        return x, P, phi
+        # write in a csv file the x at each iteration
+        return x, P
+    
+
+
         
      
 # Example of how use the code for the Kalman filter
@@ -143,12 +163,17 @@ class kalman_blimp:
 kal = kalman_blimp(dt = 0.1, Fl = 2.0, Fr = 5.9, Fu = 2.0)
 i = 0
 phi = 0.0
-F, B, u_t ,x, P = kal.initialization(phi) 
+F, B, u_t ,x, P , Q, H= kal.initialization(phi) 
+
+pos_x, pos_y, pos_z, acc_x, acc_y, acc_z, phi_vel = misuration()
+
+#Measuraement vector
+z = np.array([[pos_x, acc_x, pos_y, acc_y, pos_z, acc_z, phi_m, phi_vel]]).T
 
 while i<10: 
     # Q is the process noise x, P, F=1, Q=0, u=0, B=1, alpha=1.
     
-    x, P, phi = kal.predict(x=x, P=P, F=F, Q=0, u=u_t, B=B)
+    x, P = kal.predict(x=x, P=P, F=F, Q=Q, u=u_t, B=B)
    
-    print('x =', x)
+    print('P =', P)
     i+=1
