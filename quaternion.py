@@ -98,11 +98,11 @@ class Quaternion:
     def to_euler123(self):
 
         """
-        Conversion of Quaternions into Roll, Pitch and Yaw in degrees
+        Conversion of Quaternions into Roll, Pitch and Yaw in rad
         """
-        roll = (np.arctan2(-2 * (self[2] * self[3] - self[0] * self[1]), self[0] ** 2 - self[1] ** 2 - self[2] ** 2 + self[3] ** 2))*180/np.pi
-        pitch = (np.arcsin(2 * (self[1] * self[3] + self[0] * self[1])))*180/np.pi
-        yaw = (np.arctan2(-2 * (self[1] * self[2] - self[0] * self[3]), self[0] ** 2 + self[1] ** 2 - self[2] ** 2 - self[3] ** 2))*180/np.pi
+        roll = (np.arctan2(-2 * (self[2] * self[3] - self[0] * self[1]), self[0] ** 2 - self[1] ** 2 - self[2] ** 2 + self[3] ** 2))
+        pitch = (np.arcsin(2 * (self[1] * self[3] + self[0] * self[1])))
+        yaw = (np.arctan2(-2 * (self[1] * self[2] - self[0] * self[3]), self[0] ** 2 + self[1] ** 2 - self[2] ** 2 - self[3] ** 2))
         
         if yaw < 0:
             yaw +=  360

@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """Codice che implementa per il blimp il madgwick,
 un algoritmo usato per stimare l'heading del blimp 
-mentre è in movimento. """
-
+mentre è in movimento. 
+In questo file è inoltre usata la funzione per la calibrazione del magnetometro
+del sensore e per l'inizializzazione a zero dei valori di output del madgwick:
+Per qualunque posizione del IMU così all'inzio restituisce valori settati a zero. 
+"""
 
 """
     Copyright (c) 2015 Jonas Böer, jonas.boeer@student.kit.edu
