@@ -81,9 +81,9 @@ class kalman_blimp:
     c = 1.60/2.0 # m half lenght of blim on x axis
     b = 0.50/2.0 # m half lenght of blim on y axis
     dt = 0.01
-    xR = 0.065 # m distance of R motor from CG
-    xL = 0.065 # m distance of R motor from CG
-    m = 0.25 # kg total mass of airship
+    xR = 0.0675 # m distance of R motor from CG
+    xL = 0.0675 # m distance of R motor from CG
+    m = 0.2713 # kg total mass of airship
     I_z = m *(c*c + b*b)/5 # inertia
     Fl = 0.0 # N forces of the motors
     Fr = 0.0
@@ -141,6 +141,8 @@ class kalman_blimp:
                     [0.0, 0.0, 1.0/self.m],
                     [0.0, 0.0, 0.0],
                     [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])
+
+        
 
         u_t =  np.transpose(np.array([self.Fl, self.Fr, self.Fu])) #input vector depending on force
 
@@ -215,9 +217,19 @@ class kalman_blimp:
                       [0., 0., 0., 0., 0., 1., 0., 0.],
                       [0., 0., 0., 0., 0., 0., 1., 0.],
                       [0., 0., 0., 0., 0., 0., 0., 1.]])
-        x_pre = np.dot(R,F)
-        x = np.dot(x_pre, x) + np.dot(B, u)
-        #x = np.dot(F, x) + np.dot(B, u)
+
+        B2 = np.array([[0.0, 0.0, 0.0],
+                    [math.cos(phi)/self.m, math.cos(phi)/self.m, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [math.sin(phi)/self.m, math.sin(phi)/self.m, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0/self.m],
+                    [0.0, 0.0, 0.0],
+                    [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])
+        
+        #x_pre = np.dot(R,F)
+        #x = np.dot(x_pre, x) + np.dot(B, u)
+        x = np.dot(F, x) + np.dot(B2, u)
         P = (alpha * alpha) * np.dot(np.dot(F, P), F.T) + Q
         # write in a csv file the x at each iteration
         return x, P
@@ -365,7 +377,7 @@ class kalman_blimp:
 # Example of how use the code for the Kalman filter
 if __name__ == "__main__":
 
-    kal = kalman_blimp(dt = 0.1, Fl = 2.0,  Fr = 2.0 , Fu = 0.01)
+    kal = kalman_blimp(dt = 0.1, Fl = 0.2,  Fr = 0.2 , Fu = 0.01)
     i = 0
     phi = 0.0
     F, B, u_t ,x, P , Q, H, R = kal.initialization(phi) 

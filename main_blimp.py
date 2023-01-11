@@ -116,12 +116,16 @@ if __name__ == "__main__":
     phi_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
     z_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
 
+    traj = np.array([[0, 0, 1],
+                     [1, 1, 1],
+                     [2, 2, 2]])
     
 
     # Mantenimento di una data quota
     z_target = 1.5 # metri
     psi_target = np.pi/2.0 #rad
-    dist_target = np.array([5.0, 2.0]) #array of coordinates x,y  m
+    point_target = np.array([5.0, 2.0]) #array of coordinates x,y  m
+    dist_target = 0.01 #m distance the blimp want to minimize
     # Kalman initialization
     # kal = kalman_blimp()
 
@@ -129,7 +133,7 @@ if __name__ == "__main__":
     # SET ZERO TIME, FUNDAMENTAL BEFORE THE WHILE LOOP
     time_zero = time.perf_counter()
 while 1: 
-    
+    val = 0
     #Aquisizione magnetometro e calibrazione dei dati:
     mag = calibration(icm.magnetic)
     #Creazione vettore input per classe madgwick
@@ -161,18 +165,32 @@ while 1:
     ###############################
     # dist and phi pid block of code
     # dist_init = 
-    dist_dist = math.sqrt((pos_x-dist_target[0])**2 + (pos_y - dist_target[1])**2)
+    dist_dist = math.sqrt((pos_x-point_target[0])**2 + (pos_y - point_target[1])**2)
     phi_pid.set_new_target(psi_target)
-    dist_pid.set_new_target(dist_init)
+    dist_pid.set_new_target(dist_target)
     #phi_pid.sample_rate = differenza di tempo da capire
     #dist_pid.sample_rate = differenza di tempo da capire
     signal_phi = phi_pid.adjust_signal(phi)
     signal_dist = dist_pid.adjust_signal(dist_dist)
-    force_z =z_pid.get_force_z(signal) # Questa serve per il Kalman
-    #kal.Fu = force_z
-    z_pwm = z_pid.pwm_z_motor(force_z) # Questa serve per i motori
-    #if Npwm_z >= 0:
-        # p1.ChangeDutyCycle(Npwm_z)
+    force_l, force_r =dist_pid.get_force_lateral(signal_dist, signal_phi) # Questa serve per il Kalman
+    #kal.Fl = force_l
+    #kal.Fr = force_r
+    l_pwm = dist_pid.pwm_L_motor(force_l) # Questa serve per i motori
+    #if l_pwm >= 0:
+        # p2.ChangeDutyCycle(l_pwm)
     #else:
-        #p1i.ChangeDutyCycle(-Npwm_z)
+        #p2i.ChangeDutyCycle(-l_pwm)
+    r_pwm = dist_pid.pwm_R_motor(force_r) # Questa serve per i motori
+    #if r_pwm >= 0:
+        # p3.ChangeDutyCycle(r_pwm)
+    #else:
+        #p3i.ChangeDutyCycle(-r_pwm)
+
+    if dist_dist < 0.1:
+        val = val+1
+        # aumenti un array trajectory
+        z_pid.set_new_target(traj[val][0])
+        phi_pid.set_new_target(traj[val][1])
+        dist_pid.set_new_target(traj[val][2])
+
 
