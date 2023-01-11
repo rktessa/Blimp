@@ -37,4 +37,26 @@ Important aspects to undestand for Kalman filter implementation:
 
 - chiedere come fare tuning di Q a Santoro
 
-- come inserire madgwick nel z per kalman, capire e inserire. 
+- come inserire madgwick nel z per kalman, capire e inserire.
+
+- scrivere sim blimp
+
+- provare a vedere se kalman funziona
+
+
+# PID
+
+Da capire i valori massimi di forza generati dai motori, rivedi sto passaggio
+
+Di conseguenza da definire il max signal da passare, oltre al quale il pid satura 
+
+convertire target distance in metri  da centimetri
+
+capire dove inserire i time counter per avere l'effettivosample rate del codice che serve in:
+    - Kalman
+    - PID
+    - Madgwick
+
+
+definire il dist_init
+

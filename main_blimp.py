@@ -4,8 +4,9 @@
 import warnings
 import socket
 import RPi.GPIO as IO 
-from blimp_class import Madgwick, calibration, orientation_initial
+from blimp_class import Madgwick, calibration, orientation_initial, PID_Controller #, kalman_blimp
 import numpy as np
+import math
 from numpy.linalg import norm
 from quaternion import Quaternion
 import time
@@ -17,6 +18,12 @@ from adafruit_icm20x import ICM20948, MagDataRate
 
 #Definizione di tutti i pin per uso
 m1 = 20
+m1_i = 21
+m2 = 13
+m2_i = 19
+m3 = 17
+m3_i = 27
+
 HCtrig=23     
 HCecho=24     
 
@@ -27,7 +34,17 @@ IO.setup(HCtrig,IO.OUT)   # setup ultrasuoni
 IO.setup(HCecho,IO.IN)  
 
 p1 = IO.PWM(m1,100)       #inizializzazione pwm        
-p1.start(0)                           
+p1i = IO.PWM(m1_i,100) 
+p1.start(0)
+p1i.start(0)     
+p2 = IO.PWM(m2,100)
+p2i = IO.PWM(m2_i,100)             
+p2.start(0)
+p2i.start(0)   
+p3 = IO.PWM(m3,100)
+p3i = IO.PWM(m3_i,100)             
+p3.start(0)
+p3i.start(0)                      
 i2c = board.I2C()  # uses board.SCL and board.SDA
 icm = adafruit_icm20x.ICM20948(i2c)
 
@@ -93,10 +110,26 @@ if __name__ == "__main__":
     #Madgwick initialization
     q0 = Quaternion(0, 0, 0, 1)
     mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1) 
+    
+    # PID initialization
+    dist_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
+    phi_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
+    z_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
 
+    
+
+    # Mantenimento di una data quota
+    z_target = 1.5 # metri
+    psi_target = np.pi/2.0 #rad
+    dist_target = np.array([5.0, 2.0]) #array of coordinates x,y  m
+    # Kalman initialization
+    # kal = kalman_blimp()
+
+
+    # SET ZERO TIME, FUNDAMENTAL BEFORE THE WHILE LOOP
     time_zero = time.perf_counter()
-
 while 1: 
+    
     #Aquisizione magnetometro e calibrazione dei dati:
     mag = calibration(icm.magnetic)
     #Creazione vettore input per classe madgwick
@@ -109,5 +142,37 @@ while 1:
     quat = Quaternion(quaternion)
     roll, pitch, yaw = quat.to_euler123()
     phi = yaw #measured orientation
-    #Oter sensors
+    #OtHer sensors
     pos_x, pos_y, pos_z, acc_x, acc_y, acc_z, phi_vel = misuration()
+    
+
+    # Z_PID block of code 
+    z_pid.set_new_target(z_target)
+    #z_pid.sample_rate = differenza di tempo da capire
+    signal_z = z_pid.adjust_signal(pos_z)
+    force_z =z_pid.get_force_z(signal_z) # Questa serve per il Kalman
+    #kal.Fu = force_z
+    z_pwm = z_pid.pwm_z_motor(force_z) # Questa serve per i motori
+    #if Npwm_z >= 0:
+        # p1.ChangeDutyCycle(Npwm_z)
+    #else:
+        #p1i.ChangeDutyCycle(-Npwm_z)
+    ###############################
+    ###############################
+    # dist and phi pid block of code
+    # dist_init = 
+    dist_dist = math.sqrt((pos_x-dist_target[0])**2 + (pos_y - dist_target[1])**2)
+    phi_pid.set_new_target(psi_target)
+    dist_pid.set_new_target(dist_init)
+    #phi_pid.sample_rate = differenza di tempo da capire
+    #dist_pid.sample_rate = differenza di tempo da capire
+    signal_phi = phi_pid.adjust_signal(phi)
+    signal_dist = dist_pid.adjust_signal(dist_dist)
+    force_z =z_pid.get_force_z(signal) # Questa serve per il Kalman
+    #kal.Fu = force_z
+    z_pwm = z_pid.pwm_z_motor(force_z) # Questa serve per i motori
+    #if Npwm_z >= 0:
+        # p1.ChangeDutyCycle(Npwm_z)
+    #else:
+        #p1i.ChangeDutyCycle(-Npwm_z)
+
