@@ -12,6 +12,20 @@ from matplotlib import pyplot as plt
 
 #   FUNCTION AND CLASS USED FOR ESTIMATE THE BLIMP ORIENTATION IN SPACE
 
+# Conversion from rad to deg for visualization on terminal
+def rad_to_deg(roll, pitch, yaw):
+
+    roll_deg = roll * 180/np.pi
+    pitch_deg =pitch * 180/np.pi
+    yaw_deg = yaw * 180/np.pi 
+
+    if yaw_deg < 0:
+        yaw_deg +=  360
+    if roll_deg <0:
+        roll_deg+= 360
+    if pitch_deg < 0:
+        pitch_deg += 360 
+    return roll_deg, pitch_deg, yaw_deg
 
 class Madgwick:
     samplePeriod = 1/100
@@ -112,7 +126,7 @@ class Madgwick:
 def calibration(magnetic):
     """
     This function is used to calibrate the magnetometer data from Hard
-    and sof iron offsets. 
+    and soft iron offsets. 
     """
     magnetic = np.array(magnetic, dtype=float).flatten() #Convert the measure in a numpy array
     
@@ -213,7 +227,7 @@ def orientation_initial(raw_acc, raw_gyr, raw_mag):
         time_zero = time.perf_counter()
         quat = Quaternion(quaternion)
         #print("res = ", str(quaternion))
-        roll, pitch, yaw = quat.to_euler123()
+        roll, pitch, yaw = quat.to_euler123()  # Result is in rad
         print(roll, pitch, yaw)
         roll_vec.append(roll)
         pitch_vec.append(pitch)
@@ -223,7 +237,7 @@ def orientation_initial(raw_acc, raw_gyr, raw_mag):
     pitch_0 = sum(pitch_vec[-40 :])/40
     yaw_0 = sum(yaw_vec[-40 :])/40
     
-    return roll_0, pitch_0, yaw_0
+    return roll_0, pitch_0, yaw_0 # These are the values of initial angles
 
 
 # PID FOR THE AUTONOMOUS NAVIGATION
@@ -336,6 +350,9 @@ class PID_Controller:
         m_coefficient = 11.99/100 # da specificare per ogni motore
         pwm_R = (force_R * m_coefficient) 
         return pwm_R
+
+
+
 
 
 
