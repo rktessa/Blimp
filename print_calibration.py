@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 def print_calibration():
     
-    data = np.loadtxt('data_for_calibration.txt',delimiter=',') #input
+    data = np.loadtxt('C:\Volume_D\Programming\Blimp_git\Blimp\data_for_calibration20_01.txt',delimiter=',') #input
 
 
     plt.rcParams["figure.autolayout"] = True
@@ -15,7 +15,7 @@ def print_calibration():
 
     
 
-    df = pd.read_csv('data.csv')
+    df = pd.read_csv('C:\Volume_D\Programming\Blimp_git\Blimp\data20_01.csv')
     
     # Hard Iron Vector
     b = np.array([df.iloc[0,1], df.iloc[0,2], df.iloc[0,3]])

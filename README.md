@@ -60,3 +60,16 @@ capire dove inserire i time counter per avere l'effettivosample rate del codice 
 
 definire il dist_init
 
+
+
+# Trilateration e LLS e WLS
+Su suggerimento di Santoro una cosa interessante da fare  è quella di andare ad analizzare quanto inficiano i sensori con la loro precisione e con il loro numero in questa misura della posizione fatta
+con il LS alghorithm. Lui mi diceva di partire da 4 ancore, il minimo per una misura in 3d e fare tot prove con una certa varianza e salvare tutti i risultati, poi cambiare la varianza e farne altre.
+E con queste prove andare a vedere con un istogramma dove si poszionano i risultati. 
+
+Poi di aggiungere sensori (tipo da 4 a 10 ancore) e ripetere così e tirare fuori una curva con sulla x
+il numero di ancore e sulla y l'errore medio? e così vedere l'andamento. 
+Penso possa essere utile anche per la relazione di fontanelli. 
+
+# Comunicazione e guida con tastiera
+Messo in funzione il codice implementato da Filippo, sarebbe interessante svilupparlo per sostiuire joycon con tastiera e poi per ottene le  misure ogni decimo di secondo tipo e fare un plot che si aggiorna sul pc con i dati live. 

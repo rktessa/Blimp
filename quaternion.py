@@ -104,13 +104,10 @@ class Quaternion:
         pitch = (np.arcsin(2 * (self[1] * self[3] + self[0] * self[1])))
         yaw = (np.arctan2(-2 * (self[1] * self[2] - self[0] * self[3]), self[0] ** 2 + self[1] ** 2 - self[2] ** 2 - self[3] ** 2))
         
-        if yaw < 0:
-            yaw +=  360
-        if roll <0:
-            roll+= 360
-        if pitch < 0:
-            pitch += 360 
         return roll, pitch, yaw
+
+    
+
 
     def __mul__(self, other):
         """

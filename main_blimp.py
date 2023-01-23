@@ -53,6 +53,38 @@ icm.accelerometer_data_rate_divisor = 0  # Max velocity of sensor acquisition
 icm.gyro_data_rate_divisor = 0 # Max velocity of sensor acquisition
 icm.magnetometer_data_rate = MagDataRate.RATE_100HZ
 
+# Codice per stabilire rotazione iniziale del Blimp
+# nello spazio e stabilire orientazione dei suoi assi 
+# rispetto al sistema di riferimento globale 
+
+def blimp_to_world_rf():
+    #Motori L e R procedono dritti
+    positions = np.array([0,0])
+    roll_0, pitch_0, yaw_0 = orientation_initial(icm.acceleration,icm.gyro, calibration(icm.magnetic) ) # in rad
+    start = time.perf_counter()
+    while time.perf_counter < (start + 3.0):
+        Npwm = 50
+        p1.ChangeDutyCycle(Npwm)
+        p2.ChangeDutyCycle(Npwm)
+        # Misuro con UWB la posizione nel frattempo 
+        x_pos, y_pos, z_pos, acc_x, acc_y, acc_z, gyr = misuration()
+        positions = np.append(positions, [x_pos, y_pos])
+    x = positions[:,0]
+    y = positions[:,1]
+
+    # Ora usando i dati creati vado a fare una LLS estimation
+    # y = a +b*x
+    a = (np.sum(y) * np.sum(x**2)- np.sum(x)*np.sum(x*y))/ (len(x)*np.sum(x**2) - np.sum(x)**2)
+    b = ( len(x)* np.sum(x*y) - np.sum(x)*np.sum(y)) /(len(x)*np.sum(x**2)- np.sum(x)**2) 
+
+    ang_rad = np.arctan(b) # the inclination of the line calculated in rad
+    delta = np.abs(ang_rad-yaw_0)
+    return delta, ang_rad # This ang_rad is the parameter to insert in bothe the A* and PID phi as initial orientation calculation!!
+
+# Per usare la funzione blimp to world correttamente 
+# phi_mad_abs = delta + phi_mad_relative . # Se mantengo gli angoli anche negativi funziona bene 
+
+
 # Function to call for get measurement of all the sensors togheter
 def misuration():
     # From IMU

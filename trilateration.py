@@ -9,33 +9,35 @@ import matplotlib.pyplot  as plt
 
 # Anchor definition, set their position in space
 
-An_1 = [0.1, 0.2, 1.55] 
-An_2 = [0.3, 3.15, 1.65] 
-An_3 = [0.15, 6.2, 1.60] 
-An_4 = [3.2, 0.1, 1.59] 
-An_5 = [3.1, 3.25, 1.57] 
-An_6 = [3.0, 6.15, 1.56]
-An_7 = [2.2, 2.25, 2.32]
+An_1 = np.array([0.1, 0.2, 1.55]) 
+An_2 = np.array([0.3, 3.15, 1.65]) 
+An_3 = np.array([0.15, 6.2, 1.60] )
+An_4 = np.array([3.2, 0.1, 1.59] )
+An_5 = np.array([3.1, 3.25, 1.57] )
+An_6 = np.array([3.0, 6.15, 1.56])
+An_7 = np.array([2.2, 2.25, 2.32])
 
-An = np.array([ An_1, An_2, An_3, An_4, An_5, An_6, An_7])
+An = [ An_1, An_2, An_3, An_4, An_5, An_6, An_7]
+An = np.array(An)
 
 #print(An[0,2]) #reminder per come chiamare gli elementi nel numpy array
 
 # The target point to track
 # Initially set still
-T = [2., 5., 1.]
+T = np.array([2., 5., 1.])
 
 # Distance from each Anchor, in the final code this parameters was computed by the UWB network
-d1 = dist(An_1,T)
+d1 = dist(An_1,T) + np.random.normal(loc=0.0, scale=0.1)
 #print('d1  = ', d1)
-d2 = dist(An_2,T)
-d3 = dist(An_3,T)
-d4 = dist(An_4,T)
-d5 = dist(An_5,T)
-d6 = dist(An_6,T)
-d7 = dist(An_7,T)
+d2 = dist(An_2,T) + np.random.normal(loc=0.0, scale=0.1)
+d3 = dist(An_3,T) + np.random.normal(loc=0.0, scale=0.1)
+d4 = dist(An_4,T) + np.random.normal(loc=0.0, scale=0.1)
+d5 = dist(An_5,T) + np.random.normal(loc=0.0, scale=0.1)
+d6 = dist(An_6,T) + np.random.normal(loc=0.0, scale=0.1)
+d7 = dist(An_7,T) + np.random.normal(loc=0.0, scale=0.1)
 
-d = np.array([ d1, d2, d3, d4, d5, d6, d7])
+d = [ d1, d2, d3, d4, d5, d6, d7]
+d = np.array(d)
 n = ["A_1", "A_2", "A_3", "A_4", "A_5", "A_6", "A_7"]
 
 # Compute the position of T using trilateration and LS formula
@@ -67,18 +69,48 @@ print(b)
 
 # Calculation of the position with the LLS Alghorithm
 pos = np.matmul(np.linalg.pinv(A), b)/2
-#pos = np.matmul(np.linalg.inv(A),b)/2
-print('pos = ', pos)
+pos_str = str((np.round(pos[0,0],2), np.round(pos[1,0]),np.round(pos[2,0])))
+print('pos = ', np.transpose(pos))
+
+# LS error calculation
+x = np.transpose(pos) - T
+print ('T = ', T)
+e_LS = np.linalg.norm(x, ord=2)
+print('x =', x)
+print('e_LS = ', e_LS )
+
+
+
+# WLS implementation
+# Noise of the distance measured with variance 0.1 m 
+# random white noise added to the measured distaces
+w1 = np.random.normal(loc=0.0, scale=1.0)
+w2 = np.random.normal(loc=0.0, scale=1.0)
+w3 = np.random.normal(loc=0.0, scale=1.0)
+w4 = np.random.normal(loc=0.0, scale=1.0)
+w5 = np.random.normal(loc=0.0, scale=1.0)
+w6 = np.random.normal(loc=0.0, scale=1.0)
+w7 = np.random.normal(loc=0.0, scale=1.0)
+
+W = np.diag([w1, w2, w3, w4, w5, w6, w7])
+
+
+
 
 # Print the figure
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 ax.scatter(An[:,0], An[:,1], An[:,2], marker= '^')
 ax.scatter(T[0], T[1], T[2], marker= 'o')
+ax.scatter(pos[0,0], pos[1,0], pos[2,0], marker='o')
 ax.set_xlabel('X Label')
 ax.set_ylabel('Y Label')
 ax.set_zlabel('Z Label')
 for i, txt in enumerate(n):
     ax.text(An[i,0], An[i,1], An[i,2], txt)
+ax.text(pos[0,0], pos[1,0], pos[2,0], pos_str )
+ax.text(T[0], T[1], T[2], "T" )
 plt.show()
+
+
 
