@@ -60,7 +60,7 @@ icm.magnetometer_data_rate = MagDataRate.RATE_100HZ
 def blimp_to_world_rf():
     #Motori L e R procedono dritti
     positions = np.array([0,0])
-    roll_0, pitch_0, yaw_0 = orientation_initial(icm.acceleration,icm.gyro, calibration(icm.magnetic) ) # in rad
+    roll_0, pitch_0, yaw_0 = orientation_initial(icm.acceleration,icm.gyro, icm.magnetic ) # in rad
     start = time.perf_counter()
     while time.perf_counter < (start + 3.0):
         Npwm = 50
@@ -79,7 +79,7 @@ def blimp_to_world_rf():
 
     ang_rad = np.arctan(b) # the inclination of the line calculated in rad
     delta = np.abs(ang_rad-yaw_0)
-    return delta, ang_rad # This ang_rad is the parameter to insert in bothe the A* and PID phi as initial orientation calculation!!
+    return delta, ang_rad # This ang_rad is the parameter to insert in both the A* and PID phi as initial orientation calculation!!
 
 # Per usare la funzione blimp to world correttamente 
 # phi_mad_abs = delta + phi_mad_relative . # Se mantengo gli angoli anche negativi funziona bene 

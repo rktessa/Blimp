@@ -73,3 +73,12 @@ Penso possa essere utile anche per la relazione di fontanelli.
 
 # Comunicazione e guida con tastiera
 Messo in funzione il codice implementato da Filippo, sarebbe interessante svilupparlo per sostiuire joycon con tastiera e poi per ottene le  misure ogni decimo di secondo tipo e fare un plot che si aggiorna sul pc con i dati live. 
+
+
+# Path planner e coordinate UWB in lab di meccatronica
+Implementato path planner, prende in input mappa dell'ambiente disegnata e riscalata correttamente (1 pixel * 1 cm) e restituisce il percorso corrispondente, in step di 10 cm, che poi converto in metri per comodità del mio algoritmo
+
+![Alt text](https://github.com/rktessa/Blimp/blob/main/phat_plannig_solution.png?raw=true "Scheme of the  Alghorithm ")
+
+# Cosa vuol dire che Cazzuto ha avuto problemi con il dead reckoning iniziale??
+Investigare

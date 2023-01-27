@@ -6,6 +6,9 @@ from numpy.linalg import norm
 from quaternion import Quaternion
 import pandas as pd
 from matplotlib import pyplot as plt
+import math
+from math import dist
+import cv2
 
 
 
@@ -205,39 +208,6 @@ def print_calibration():
     plt.show()
 
 
-def orientation_initial(raw_acc, raw_gyr, raw_mag):
-
-    q0 = Quaternion(0, 0, 0, 1)
-    mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1)
-    roll_vec = []
-    pitch_vec = []
-    yaw_vec = []
-
-    time_zero = time.perf_counter()
-    time_start = time.perf_counter()
-    while  time.perf_counter() < (time_start +10):
-        #Aquisizione magnetometro e calibrazione dei dati:
-        mag = calibration(raw_mag)
-        #Creazione vettore input per classe madgwick
-        accelerometer, gyroscope, magnetometer = np.asarray(raw_acc), np.asarray(raw_gyr), np.asarray(mag)
-        time_fine = time.perf_counter()
-        #setting the variable frequency of updateof Madgwick alghorithm
-        mad.samplePeriod = time_fine - time_zero
-        quaternion = mad.update(gyroscope, accelerometer, magnetometer)
-        time_zero = time.perf_counter()
-        quat = Quaternion(quaternion)
-        #print("res = ", str(quaternion))
-        roll, pitch, yaw = quat.to_euler123()  # Result is in rad
-        print(roll, pitch, yaw)
-        roll_vec.append(roll)
-        pitch_vec.append(pitch)
-        yaw_vec.append(yaw)
-    
-    roll_0 = sum(roll_vec[-40 :])/40 #perform the mean of the last 20 element
-    pitch_0 = sum(pitch_vec[-40 :])/40
-    yaw_0 = sum(yaw_vec[-40 :])/40
-    
-    return roll_0, pitch_0, yaw_0 # These are the values of initial angles
 
 
 # PID FOR THE AUTONOMOUS NAVIGATION
@@ -352,7 +322,143 @@ class PID_Controller:
         return pwm_R
 
 
+def trilateration(d1,d2,d3,d4,d5,d6):
 
+    # Anchor definition, set their position in space
+
+    A_n1 = np.array([0.00, 7.19, 2.15])
+    A_n2 = np.array([0.00, 3.62, 3.15])
+    A_n3 = np.array([0.00, 0.00, 2.15])
+    A_n4 = np.array([4.79, 1.85, 3.15])
+    A_n5 = np.array([4.79, 5.45, 2.15])
+    A_n6  = np.array([3.00, 9.35, 3.15])
+
+    An =  A_n1, A_n2, A_n3, A_n4, A_n5, A_n6
+    An = np.array(An)  
+
+    d = np.array([ d1, d2, d3, d4, d5, d6])
+
+    # Compute the position of T using trilateration and LS formula
+    # Defining initial A matrix and b vector
+    A = np.zeros((5,3))
+    b = np.zeros((5,1))
+
+    # Definition of vectors X, Y, Z, first position is the target,
+    # the others the anchors coordinates
+    x = An[:,0]
+    y = An[:,1]
+    z = An[:,2]
+
+    # Calculation of A and b for the case with 6 anchors
+    for c in range(1, len(x)):
+        A[c-1, :] = [x[c]-x[0], y[c]-y[0], z[c]-z[0]] 
+        #A[c-1, :] = [x[c]-x[0], y[c]-y[0], z[c]-z[0], 0, 0, 0]  
+        b[c-1] = d[0]**2 - d[c]**2 + x[c]**2 + y[c]**2 + z[c]**2 - x[0]**2 -y[0]**2 -z[0]**2   
+        
+    pos = np.matmul(np.linalg.pinv(A), b)/2
+    return pos[0], pos[1], pos[2] #pos x,y,z   
+
+
+class Astar():
+    def __init__(self, m): #m is the only input require while definig class, it is the map of the environment
+        self.map = m
+        self.initialize()
+
+    def initialize(self): #It is necessary when I want to recalculate a new path from 2 points on the map
+        self.open = []
+        self.close = {}
+        self.g = {} #distance from start to the node
+        self.h = {} #distance from node to the goal
+        node_goal = None
+
+    # estimation
+    def distance(self, a, b):
+        # Diagonal distance
+        dMax = np.max([np.abs(a[0]-b[0]), np.abs(a[1]-b[1])])
+        dMin = np.min([np.abs(a[0]-b[0]), np.abs(a[1]-b[1])])
+        d = math.sqrt(2.) * dMin + (dMax - dMin)
+        return d
+
+    def planning(self, start, goal, inter, img=None):
+        self.initialize() # Initialize the calculator
+        self.open.append(start) #first step of the alghorithm is put node start in open list
+        self.close[start] = None
+        self.g[start] = 0 # coordinate of start are at distance 0 from itself
+        self.h[start] = self.distance(start, goal) # distance from start point to goal
+        goal_node = None
+        
+        while(1): #Here start the real alghorithm
+            min_distance = 9999999. #this value mast be maxed at the beginning
+            min_id = -1 #not exist in reality this index
+            for i, node in reversed(list(enumerate(self.open))): #mia modifica, prendo prima gli ultimi perchè sono tendenzialmente quelli con h minore
+            #for i, node in enumerate(self.open): # controllo tutti i nodi in open
+                # 1:(loc1, loc2) come sto chiamando con enumerate i vari nodi in open
+                f = self.g[node] # Calcolo il costo in termini di distanza di tutti
+                y = self.h[node] # i vicini del nodo che sto considerando
+
+                if f+y < min_distance: # Alla fine tengo il nodo che minimizza la somma dei due valori
+                    min_distance = f+y
+                    min_id = i
+
+            # Alla fine questo nodo migliore è quello che mi rimane e su cui faccio i calcoli
+            p = self.open.pop(min_id)  # Tolgo quello che vado a considerare da open e tengo però le sue coordinate
+
+            #Controllo se in p vi è un ostacolo
+            if self.map[p[1], p[0]] < 0.5: #Qui il check si basa sul colore della mappa, nero = ostacolo
+                continue # In questo modo il punto con ostacolo viene tolto da open e non si sviluppano i conti su di esso.
+
+            # Controllo se sono arrivato alla destinazione
+            if self.distance(p, goal) < inter:
+                self.goal_node = p # Salvo p per non perderlo in goal node
+                break
+
+            # eight directions, definisco le 8 direzioni cui posso muovermi dal punto in cui sono (loc1, loc2)
+            pts_next1 = [(p[0]+inter, p[1]), (p[0], p[1]+inter),
+                         (p[0]-inter, p[1]), (p[0], p[1]-inter)]
+            pts_next2 = [(p[0]+inter, p[1]+inter), (p[0]-inter, p[1]+inter),
+                         (p[0]-inter, p[1]-inter), (p[0]+inter, p[1]-inter)]
+            pts_next = pts_next1 + pts_next2
+
+            for pn in pts_next: #Itero sui punti
+                # Ci sono 2 possibilità, il punto è nuovo, oppure è già stato considerato
+                # per i puntinuovi
+                if pn not in self.close:
+                    # metto pn in open
+                    self.open.append(pn)
+                    self.close[pn] = p # Associo pn al punto cui lo sto collegando
+                    # Calcolo per quel punto il valore di h e g
+                    self.g[pn] = self.g[p] + inter #La distanza da start che ha
+                    self.h[pn] = self.distance(pn, goal) #quanto  distante ancora da goal
+                
+                # Se è gia in close devo controllare se la distanza g diminuisce
+                elif self.g[pn] > self.g[p] + inter:
+                    # In caso affermativo sostituisco con la distanza minore e cambio il parente
+                    self.close[pn] = p
+                    self.g[pn] = self.g[p] + inter 
+                    # Non serve però ricalcolare la h, quella non cambia
+
+            '''if img is not None:
+                cv2.circle(img, (start[0], start[1]), 5, (0, 0, 1), 3)
+                cv2.circle(img, (goal[0], goal[1]), 5, (0, 1, 0), 3)
+                cv2.circle(img, p, 2, (0, 0, 1), 1)
+                img_ = cv2.flip(img, 0)
+                cv2.imshow("A* Test", img_)
+                k = cv2.waitKey(1)
+                if k == 27:
+                    break'''
+
+
+        # Extract path
+        path = []
+        p = self.goal_node
+        while(True):
+            path.insert(0, p)
+            if self.close[p] == None:
+                break
+            p = self.close[p] # Il valore precedente in close, chiama il suo parente che diventa il punto successivo del path e ricorsivamente ricostruisco il percorso
+        if path[-1] != goal:
+            path.append(goal)
+        return path
 
 
 

@@ -90,13 +90,13 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
         roll_vec.append(roll)
         pitch_vec.append(pitch)
         yaw_vec.append(yaw)
-        if time.perf_counter() > (time_start +7):
-            Npwm = 50
-            p1.ChangeDutyCycle(Npwm)
-            p2.ChangeDutyCycle(Npwm)
-            # Misuro con UWB la posizione nel frattempo 
-            x_pos, y_pos, z_pos, acc_x, acc_y, acc_z, gyr = misuration()
-            positions = np.append(positions, [x_pos, y_pos])
+        
+        Npwm = 50
+        p1.ChangeDutyCycle(Npwm)
+        p2.ChangeDutyCycle(Npwm)
+        # Misuro con UWB la posizione nel frattempo 
+        x_pos, y_pos, z_pos, acc_x, acc_y, acc_z, gyr = misuration()
+        positions = np.append(positions, [x_pos, y_pos])
 
 
     
