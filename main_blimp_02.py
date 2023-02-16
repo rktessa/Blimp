@@ -133,28 +133,31 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
         #p2.ChangeDutyCycle(Npwm)
         # Misuro con UWB la posizione nel frattempo 
         x_pos, y_pos, z_pos, acc_x, acc_y, acc_z, gyr = misuration()
-        positions = np.append(positions, [x_pos, y_pos])
-
+        x = np.append(x, x_pos)
+        y = np.append(y, y_pos)
 
     
+    Npwm = 100
+    p1.ChangeDutyCycle(Npwm)
+    p2.ChangeDutyCycle(Npwm)
     quat_final = quat # the last quaternion is stored as input for the madgwick later...
     roll_0 = sum(roll_vec[-40 :])/40 #perform the mean of the last 20 element
     pitch_0 = sum(pitch_vec[-40 :])/40
     yaw_0 = sum(yaw_vec[-40 :])/40
     
-    x = positions[:,0]
-    y = positions[:,1]
+    #x = positions[:,0]
+    #y = positions[:,1]
 
     # Ora usando i dati creati vado a fare una LLS estimation
     # y = a +b*x
     a = (np.sum(y) * np.sum(x**2)- np.sum(x)*np.sum(x*y))/ (len(x)*np.sum(x**2) - np.sum(x)**2)
     b = ( len(x)* np.sum(x*y) - np.sum(x)*np.sum(y)) /(len(x)*np.sum(x**2)- np.sum(x)**2) 
 
-    ang_rad = np.arctan(b) # the inclination of the line calculated in rad
+    ang_rad = np.arctan(b) # the inclination of the line calculated in rad with uwb
     delta = np.abs(ang_rad-yaw_0)
 
 
-    return delta, ang_rad, quat_final # These are the values of initial angles
+    return delta, ang_rad, quat_final, yaw_0 # These are the values of initial angles
     # This ang_rad is the parameter to insert in both the A* and PID phi as initial orientation calculation!!
 
     
@@ -210,8 +213,12 @@ def misuration():
         print ('Serial port closed')
 
     #x_pos, y_pos, z_pos_tri = trilateration(d1,d2,d3,d4,d5,d6)
-    #x_pos, y_pos, z_pos_tri, dt_new = TDoA(ts, dt)
+    ts = mesg.split(" ")
+    dt_uwb = 1e-3 
+    x_pos_uwb, y_pos_uwb, z_pos_uwb, dt_new = TDoA(ts, dt_uwb)
     
+    print("coordinate = ", x_pos_uwb, y_pos_uwb, z_pos_uwb)
+
     d1 = 6.40311549 
     d2= 3.5336808
     d3 =  1.82277261 

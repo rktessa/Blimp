@@ -1,8 +1,12 @@
 # Blimp
 A simple autonomous blimp project on Raspberry
 
-## Cose importanti da modificare
-La funzione Orientation initial devi modificarla per fare in modo che nei primi 10 secondi ti dia il valore di orientazione del blimp rispetto al reference frame assoluto degli UWB. Poi la fai andare all'inizio del codice e in questo modo ti ricavi una terna di valori di angoli di cui ruotare la lettura trovata poi nel while 1 del madgwick mentre fa andare la navigazione. 
+##  Funzione blimp_to_world_rf
+In prova.py e in main_blimp_01.py è visibile la routine inziale del codice ora funzionante. 
+
+La funzione blimp_to_world_rf crea un programma che stima con il madgwick per 10 secondi l'orientazione in cui si trova il dirigibile. In contemporanea con l'uwb viene misurata la posizione del blimp mentre si muove in linea retta nel laboratorio. La differenza delle 2 orientazioni calcolate è usata come off set per ruotare il sistema di riferimento del blimp nel absolute reference frame rappresentato dagli UWB. In questo modo posso pilotare poi per il resto del tempo il dirigibile usando angoli calcolati con il path planning nel global reference frame
+
+ 
 
 
 ## Lavori in corso
@@ -27,7 +31,7 @@ Important aspects to undestand for Kalman filter implementation:
 
 - capire se la rootazione come la ho fatta va bene
 
-- chiarire come salvare su csv/txt al meglio lo stream con i dati calcolati di posizione/sensori e valori del kalman
+- chiarire come salvare su csv/txt al meglio lo stream con i dati calcolati di posizione/sensori e valori del kalman ==> ispirarsi al codice visto e implementato in "path_planning.py" con le python cv per plottare il path del blimp
 
 - implementare che il risultato del programma per il calcolo della traiettoria sia un csv/txt che viene letto e convertito in un data frame durante la navigazione. 
 
@@ -52,7 +56,7 @@ Di conseguenza da definire il max signal da passare, oltre al quale il pid satur
 
 convertire target distance in metri  da centimetri
 
-capire dove inserire i time counter per avere l'effettivosample rate del codice che serve in:
+capire dove inserire i time counter per avere l'effettivo sample rate del codice che serve in:
     - Kalman
     - PID
     - Madgwick
@@ -74,11 +78,13 @@ Penso possa essere utile anche per la relazione di fontanelli.
 # Comunicazione e guida con tastiera
 Messo in funzione il codice implementato da Filippo, sarebbe interessante svilupparlo per sostiuire joycon con tastiera e poi per ottene le  misure ogni decimo di secondo tipo e fare un plot che si aggiorna sul pc con i dati live. 
 
+==> Capire come implementare protocollo per trasmissione dei dati dal blimp al pc ogni secondo (?)
+
 
 # Path planner e coordinate UWB in lab di meccatronica
 Implementato path planner, prende in input mappa dell'ambiente disegnata e riscalata correttamente (1 pixel * 1 cm) e restituisce il percorso corrispondente, in step di 10 cm, che poi converto in metri per comodità del mio algoritmo
 
 ![Alt text](https://github.com/rktessa/Blimp/blob/main/phat_plannig_solution.png?raw=true "Scheme of the  Alghorithm ")
 
-# Cosa vuol dire che Cazzuto ha avuto problemi con il dead reckoning iniziale??
-Investigare
+
+
