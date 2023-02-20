@@ -419,12 +419,12 @@ def TDoA(ts, dt):
     t5_tx2 = float(ts[23]) * 15.65e-12
     
     # Embedded Lab system anchor position
-    A_n1 = np.array([0.00, 7.19, 2.15])
+    '''A_n1 = np.array([0.00, 7.19, 2.15])
     A_n2 = np.array([0.00, 3.62, 3.15])
     A_n3 = np.array([0.00, 0.00, 2.15])
     A_n4 = np.array([4.79, 1.85, 3.15])
     A_n5 = np.array([4.79, 5.45, 2.15])
-    A_n6 = np.array([3.00, 9.35, 3.15])
+    A_n6 = np.array([3.00, 9.35, 3.15])'''
 
     A_n1 = [0.00, 7.19, 2.15]
     A_n2 = [0.00, 3.62, 3.15]
@@ -469,7 +469,7 @@ def TDoA(ts, dt):
     
     x_t0 = np.matmul(np.linalg.pinv(A), b.T)
     
-    print("x_t0 =", x_t0) 
+    #print("x_t0 =", x_t0) 
     #print("A =", A)
     #print("pinvA = ", sp.linalg.pinv(A))
     #-----Non linear correction (Taylor Expansion)-----------------
@@ -492,7 +492,7 @@ def TDoA(ts, dt):
     
     x_t = (np.matmul(np.linalg.pinv(del_f), (D- f.T).T)).T + x_t_0
 
-    return x_t[0], x_t[1], x_t[2], dt_new
+    return x_t[0,0], x_t[0,1], x_t[0,2], dt_new
 
 
 
