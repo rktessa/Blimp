@@ -88,5 +88,5 @@ Implementato path planner, prende in input mappa dell'ambiente disegnata e risca
 
 # Tester per spinta motori
 In motor_test_final.py ho implementato un semplice scipt per variare da terminale la pwm dei motori ed eseguire così un loro test molto semplice. 
-
+Inoltre la prova con una prima elica toroidale ha dato degli ottimi risultati, è molto più silenziosa rispetto al modello di elica precendente.
 
