@@ -299,8 +299,8 @@ while 1:
     #kal.Fu = force_z
     z_pwm = z_pid.pwm_z_motor(force_z) # Questa serve per i motori
     #if Npwm_z >= 0:
-        # p1.ChangeDutyCycle(Npwm_z)
-    #else:
+        # geDutyCycle(Npwm_z)
+    #else:p1.Chan
         #p1i.ChangeDutyCycle(-Npwm_z)
     ###############################
     ###############################

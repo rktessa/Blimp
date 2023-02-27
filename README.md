@@ -86,5 +86,7 @@ Implementato path planner, prende in input mappa dell'ambiente disegnata e risca
 
 ![Alt text](https://github.com/rktessa/Blimp/blob/main/phat_plannig_solution.png?raw=true "Scheme of the  Alghorithm ")
 
+# Tester per spinta motori
+In motor_test_final.py ho implementato un semplice scipt per variare da terminale la pwm dei motori ed eseguire così un loro test molto semplice. 
 
 
