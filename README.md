@@ -37,18 +37,17 @@ Important aspects to undestand for Kalman filter implementation:
 
 -si può lanciare un programma mentre sta andando il primo?, devo usare delle exception (?)
 
-- come programmare input da joycon
 
 - chiedere come fare tuning di Q a Santoro
 
-- come inserire madgwick nel z per kalman, capire e inserire.
+- come inserire madgwick nel z per kalman, capire e inserire. ==> più che altro per il fatto che la misura del ultrasuonin è relativa al fondo. Possiamo anche non fare sensor fusion per forza. 
 
 - scrivere sim blimp
 
 - provare a vedere se kalman funziona
 
 
-# PID
+## PID
 
 Da capire i valori massimi di forza generati dai motori, rivedi sto passaggio
 
@@ -66,7 +65,7 @@ definire il dist_init
 
 
 
-# Trilateration e LLS e WLS
+## Trilateration e LLS e WLS
 Su suggerimento di Santoro una cosa interessante da fare  è quella di andare ad analizzare quanto inficiano i sensori con la loro precisione e con il loro numero in questa misura della posizione fatta
 con il LS alghorithm. Lui mi diceva di partire da 4 ancore, il minimo per una misura in 3d e fare tot prove con una certa varianza e salvare tutti i risultati, poi cambiare la varianza e farne altre.
 E con queste prove andare a vedere con un istogramma dove si poszionano i risultati. 
@@ -75,18 +74,22 @@ Poi di aggiungere sensori (tipo da 4 a 10 ancore) e ripetere così e tirare fuor
 il numero di ancore e sulla y l'errore medio? e così vedere l'andamento. 
 Penso possa essere utile anche per la relazione di fontanelli. 
 
-# Comunicazione e guida con tastiera
+## Comunicazione e guida con tastiera
 Messo in funzione il codice implementato da Filippo, sarebbe interessante svilupparlo per sostiuire joycon con tastiera e poi per ottene le  misure ogni decimo di secondo tipo e fare un plot che si aggiorna sul pc con i dati live. 
 
 ==> Capire come implementare protocollo per trasmissione dei dati dal blimp al pc ogni secondo (?)
 
 
-# Path planner e coordinate UWB in lab di meccatronica
+## Path planner e coordinate UWB in lab di meccatronica
 Implementato path planner, prende in input mappa dell'ambiente disegnata e riscalata correttamente (1 pixel * 1 cm) e restituisce il percorso corrispondente, in step di 10 cm, che poi converto in metri per comodità del mio algoritmo
 
 ![Alt text](https://github.com/rktessa/Blimp/blob/main/phat_plannig_solution.png?raw=true "Scheme of the  Alghorithm ")
 
-# Tester per spinta motori
+## Tester per spinta motori
 In motor_test_final.py ho implementato un semplice scipt per variare da terminale la pwm dei motori ed eseguire così un loro test molto semplice. 
 Inoltre la prova con una prima elica toroidale ha dato degli ottimi risultati, è molto più silenziosa rispetto al modello di elica precendente.
+
+
+## Programma per la misurazione
+Un'idea interessante per gestire tutti i dati dei sensori potrebbe essere quello di scrivere un programma che integra un protocollo di comunicazione molto basilare con tutte le funzioni che abbiamo per il rilevamento dei sensori del dirigibile. Potrei provare a usare **zeroMQ** per questo scopo. 
 

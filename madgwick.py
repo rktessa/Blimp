@@ -34,7 +34,7 @@ Per qualunque posizione del IMU così all'inzio restituisce valori settati a zer
 
 
 import warnings
-from blimp_class import Madgwick, calibration, orientation_initial
+from blimp_class import Madgwick, calibration
 import numpy as np
 from numpy.linalg import norm
 from quaternion import Quaternion
@@ -58,7 +58,7 @@ icm.magnetometer_data_rate = MagDataRate.RATE_100HZ
 if __name__ == "__main__":
     print("Start of Madgwick: setting 0 angle pose")
     print("Wait 10 seconds")
-    roll_0, pitch_0, yaw_0 = orientation_initial(icm.acceleration,icm.gyro, icm.magnetic)
+    #roll_0, pitch_0, yaw_0 = orientation_initial(icm.acceleration,icm.gyro, icm.magnetic)
     
     print("Start of live output")
     q0 = Quaternion(0, 0, 0, 1)
@@ -79,8 +79,8 @@ if __name__ == "__main__":
         quat = Quaternion(quaternion)
         #print("res = ", str(quaternion))
         roll, pitch, yaw = quat.to_euler123()
-        roll = roll - roll_0
-        pitch = pitch-pitch_0
-        yaw = yaw - yaw_0
+        #roll = roll - roll_0
+        #pitch = pitch-pitch_0
+        #yaw = yaw - yaw_0
         print(roll, pitch, yaw)
         

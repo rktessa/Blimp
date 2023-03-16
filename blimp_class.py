@@ -122,9 +122,6 @@ class Madgwick:
         return  str(self.x)
 
 
-
-
-
     
 def calibration(magnetic):
     """
@@ -208,120 +205,6 @@ def print_calibration():
     plt.show()
 
 
-
-
-# PID FOR THE AUTONOMOUS NAVIGATION
-
-# Create object class for PID_Controller. Object contains the PID cofficients, a method for calculating
-# output signal based on system state, a method for running a system simulation based on the controller signal
-# and a method for autotuning the attributes to optimize controller performance for an input system. 
-class PID_Controller:
-    
-    # Initialize controller attributes when object is created. kp, ki, and kd are the constants for the
-    # proportional, integral, and derivative elements of the controller, respectively. Target is an input attribute
-    # which establishes the goal the controller is trying to achieve. Target is not set at object intiliazation, but
-    # is rather set as part of "running" the controller. Signal is effectively an output attribute which represents 
-    # the "current" signal being emitted from the controller. Accumulator is a attribute used to execute the integral 
-    # calculation, and last_reading is using to determine the slope for application of the derivative calculation.
-    # Max_signal is used to limit the signal request that the controller can make, and the sample_rate establishes how
-    # frequently the controller can adjust the signal. In a practical application this would equate to a 
-    # maximum speed/torque/force of a motor or actuator element and the sampling rate of a digital controller device.
-    kp = 0
-    ki = 0
-    kd = 0
-    sample_rate = 1.0/100
-    max_signal = 12 # da capire
-    target = 0 # target de pid, valore agnostico
-    
-
-    def __init__(self, kp, ki, kd, max_signal, sample_rate, target):
-        
-        if kp is not None:
-            self.kp = kp
-        if ki is not None:
-            self.ki = ki
-        if kd is not None:
-            self.kd = kd
-        if target is not None:
-            self.target = target #distanza in cm
-        if sample_rate is not None:
-            self.sample_rate = sample_rate
-        if max_signal is not None:
-            self.max_signal = max_signal #initial assumption
-
-        self.signal = 0
-        self.accumulator = 0
-        self.last_reading = 0
-        self.xa = 13.5 #in cm 
-
-
-
-    # Set_new_target sets the target attribute and resets the held accumulator value. Resetting the accumulator
-    # is necessary for the integral controller to function properly.
-    def set_new_target(self, target):
-        self.accumulator = 0
-        self.target = target
-
-        # return target, accumulator;
-    
-
-    # Adjust_signal is the method that performs the actual function of the controller. This method calculates a 
-    # new signal based on the feedback_value, accumulator value, last_reading, and target. It then sets the new
-    # signal to the self.signal attribute.
-    def adjust_signal(self, feedback_value):
-        # kp = 100 #initial assumption
-        # ki = 0
-        # kd = 0
-        # Calculate the error - difference between target and feedback_value (measurement)
-        error = self.target - feedback_value
-
-        # Add error to accumulator
-        self.accumulator += error * self.sample_rate
-
-        # Calculate signal based on PID coefficients
-        self.signal = self.kp * error + self.ki * self.accumulator + self.kd * (feedback_value - self.last_reading)/self.sample_rate
-
-        # max_signal = 10000000000
-        # If calculated signal exceeds max_signal, then set signal to max_signal value. Do this in both positive
-        # and negative directions
-        if self.signal > self.max_signal:
-            self.signal = self.max_signal
-        elif self.signal < -self.max_signal:
-            self.signal = -self.max_signal
-
-        # Save current feedback_value as last_reading attribute for use in calulating next signal.
-        self.last_reading = feedback_value
-
-        return self.signal
-
-        # Run_simulation is a controller method which will simulate the output of a system object "system_simulator"
-    # over a time_period "duration."
-
-    def get_force_z(self, signal):
-        force_z = signal
-        return force_z
-
-    def get_force_lateral(self, signal_distance, signal_psi):
-        force_L = (signal_distance*self.xa + signal_psi)/(2 * self.xa)
-        force_R = (signal_distance*self.xa - signal_psi)/(2 * self.xa)
-        return force_L, force_R
-
-    def pwm_z_motor(self, force_z):
-        m_coefficient = 11.99/100 #  da specificare per ogni motore
-        pwm_z = (force_z / m_coefficient) 
-        return pwm_z
-
-    def pwm_L_motor(self, force_L):
-        m_coefficient = 11.99/100 # da specificare per ogni motore
-        pwm_L = (force_L * m_coefficient) 
-        return pwm_L
-
-    def pwm_R_motor(self, force_R):
-        m_coefficient = 11.99/100 # da specificare per ogni motore
-        pwm_R = (force_R * m_coefficient) 
-        return pwm_R
-
-
 def trilateration(d1,d2,d3,d4,d5,d6):
 
     # Anchor definition, set their position in space
@@ -359,6 +242,76 @@ def trilateration(d1,d2,d3,d4,d5,d6):
     return pos[0], pos[1], pos[2] #pos x,y,z   
 
 
+def reject_outliers(data, m = 2.):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d/mdev if mdev else np.zero(len(d))
+    return data[s<m]
+
+
+
+def TDoA_dt(ts):
+    t6_rx1 = float(int( ts[0], 2 )) * 15.65e-12
+    t1_rx1 = float(int( ts[1],2  )) * 15.65e-12
+    t2_rx1 = float(int(ts[2],2)) * 15.65e-12
+    t3_rx1 = float(int(ts[3],2)) * 15.65e-12
+    t4_rx1 = float(int(ts[4],2)) * 15.65e-12
+    t5_rx1 = float(int(ts[5],2)) * 15.65e-12
+
+    t6_rx2 = float(int(ts[6],2)) * 15.65e-12
+    t1_rx2 = float(int(ts[7],2)) * 15.65e-12
+    t2_rx2 = float(int(ts[8],2)) * 15.65e-12
+    t3_rx2 = float(int(ts[9],2)) * 15.65e-12
+    t4_rx2 = float(int(ts[10],2)) * 15.65e-12
+    t5_rx2 = float(int(ts[11],2)) * 15.65e-12 #double(1/(63.8976 * 100000000float
+
+    t6_tx1 = float(int(ts[12],2)) * 15.65e-12
+    t1_tx1 = float(int(ts[13],2)) * 15.65e-12
+    t2_tx1 = float(int(ts[14],2)) * 15.65e-12
+    t3_tx1 = float(int(ts[15],2)) * 15.65e-12
+    t4_tx1 = float(int(ts[16],2)) * 15.65e-12
+    t5_tx1 = float(int(ts[17],2)) * 15.65e-12
+
+    t6_tx2 = float(int(ts[18],2)) * 15.65e-12
+    t1_tx2 = float(int(ts[19],2)) * 15.65e-12
+    t2_tx2 = float(int(ts[20],2)) * 15.65e-12
+    t3_tx2 = float(int(ts[21],2)) * 15.65e-12
+    t4_tx2 = float(int(ts[22],2)) * 15.65e-12
+    t5_tx2 = float(int(ts[23],2)) * 15.65e-12
+    
+    # Embedded Lab system anchor position
+    '''A_n1 = np.array([0.00, 7.19, 2.15])
+    A_n2 = np.array([0.00, 3.62, 3.15])
+    A_n3 = np.array([0.00, 0.00, 2.15])
+    A_n4 = np.array([4.79, 1.85, 3.15])
+    A_n5 = np.array([4.79, 5.45, 2.15])
+    A_n6 = np.array([3.00, 9.35, 3.15])'''
+
+    A_n1 = [0.00, 7.19, 2.15]
+    A_n2 = [0.00, 3.62, 3.15]
+    A_n3 = [0.00, 0.00, 2.15]
+    A_n4 = [4.79, 1.85, 3.15]
+    A_n5 = [4.79, 5.45, 2.15]
+    A_n6 = [3.00, 9.35, 3.15]
+
+    A_n = np.array((A_n6, A_n1, A_n2, A_n3, A_n4, A_n5))
+    c = 299792458 # Speed of light
+    n = len(A_n)
+
+    
+    #TOF_MA = np.sqrt(np.sum)
+
+    # Real measurements
+    toa_tx = np.array([[t6_tx1,t6_tx2],[t1_tx1, t1_tx2], [t2_tx1,t2_tx2], [t3_tx1,t3_tx2], [t4_tx1,t4_tx2], [t5_tx1,t5_tx2]])
+    toa_rx = np.array([[t6_rx1,t6_rx2], [t1_rx1,t1_rx2], [t2_rx1,t2_rx2], [t3_rx1,t3_rx2], [t4_rx1,t4_rx2], [t5_rx1,t5_rx2]])
+
+    #Drift tag
+    dt_new = (toa_rx[:,1]- toa_rx[:,0]) /(toa_tx[:,1] - toa_tx[:,0])
+
+    return dt_new
+
+
+
 def TDoA(ts, dt):
     # Time definition
     '''t6_rx1 = float(ts[0,0]) * 15.65e-12
@@ -390,33 +343,33 @@ def TDoA(ts, dt):
     t5_tx2 = float(ts[5,3]) * 15.65e-12
     '''
     
-    t6_rx1 = float(ts[0]) * 15.65e-12
-    t1_rx1 = float(ts[1]) * 15.65e-12
-    t2_rx1 = float(ts[2]) * 15.65e-12
-    t3_rx1 = float(ts[3]) * 15.65e-12
-    t4_rx1 = float(ts[4]) * 15.65e-12
-    t5_rx1 = float(ts[5]) * 15.65e-12
+    t6_rx1 = float(int(ts[0],2)) * 15.65e-12
+    t1_rx1 = float(int(ts[1],2)) * 15.65e-12
+    t2_rx1 = float(int(ts[2],2)) * 15.65e-12
+    t3_rx1 = float(int(ts[3],2)) * 15.65e-12
+    t4_rx1 = float(int(ts[4],2)) * 15.65e-12
+    t5_rx1 = float(int(ts[5],2)) * 15.65e-12
 
-    t6_rx2 = float(ts[6]) * 15.65e-12
-    t1_rx2 = float(ts[7]) * 15.65e-12
-    t2_rx2 = float(ts[8]) * 15.65e-12
-    t3_rx2 = float(ts[9]) * 15.65e-12
-    t4_rx2 = float(ts[10]) * 15.65e-12
-    t5_rx2 = float(ts[11]) * 15.65e-12 #double(1/(63.8976 * 100000000float
+    t6_rx2 = float(int(ts[6],2)) * 15.65e-12
+    t1_rx2 = float(int(ts[7],2)) * 15.65e-12
+    t2_rx2 = float(int(ts[8],2)) * 15.65e-12
+    t3_rx2 = float(int(ts[9],2)) * 15.65e-12
+    t4_rx2 = float(int(ts[10],2)) * 15.65e-12
+    t5_rx2 = float(int(ts[11],2)) * 15.65e-12 #double(1/(63.8976 * 100000000float
 
-    t6_tx1 = float(ts[12]) * 15.65e-12
-    t1_tx1 = float(ts[13]) * 15.65e-12
-    t2_tx1 = float(ts[14]) * 15.65e-12
-    t3_tx1 = float(ts[15]) * 15.65e-12
-    t4_tx1 = float(ts[16]) * 15.65e-12
-    t5_tx1 = float(ts[17]) * 15.65e-12
+    t6_tx1 = float(int(ts[12],2)) * 15.65e-12
+    t1_tx1 = float(int(ts[13],2)) * 15.65e-12
+    t2_tx1 = float(int(ts[14],2)) * 15.65e-12
+    t3_tx1 = float(int(ts[15],2)) * 15.65e-12
+    t4_tx1 = float(int(ts[16],2)) * 15.65e-12
+    t5_tx1 = float(int(ts[17],2)) * 15.65e-12
 
-    t6_tx2 = float(ts[18]) * 15.65e-12
-    t1_tx2 = float(ts[19]) * 15.65e-12
-    t2_tx2 = float(ts[20]) * 15.65e-12
-    t3_tx2 = float(ts[21]) * 15.65e-12
-    t4_tx2 = float(ts[22]) * 15.65e-12
-    t5_tx2 = float(ts[23]) * 15.65e-12
+    t6_tx2 = float(int(ts[18],2)) * 15.65e-12
+    t1_tx2 = float(int(ts[19],2)) * 15.65e-12
+    t2_tx2 = float(int(ts[20],2)) * 15.65e-12
+    t3_tx2 = float(int(ts[21],2)) * 15.65e-12
+    t4_tx2 = float(int(ts[22],2)) * 15.65e-12
+    t5_tx2 = float(int(ts[23],2)) * 15.65e-12
     
     # Embedded Lab system anchor position
     '''A_n1 = np.array([0.00, 7.19, 2.15])
@@ -449,8 +402,8 @@ def TDoA(ts, dt):
     
     
     tmp_rx = np.zeros((len(toa_rx),2))
-    tmp_rx[:][0] = toa_rx[:][0] - toa_rx[0][0] - (toa_tx[:][0] * dt -toa_tx[0][0]*dt)
-    tmp_rx[:][1] = toa_rx[:][1] - toa_rx[0][1] - (toa_tx[:][1] * dt -toa_tx[0][1]*dt)
+    tmp_rx[:,0] = toa_rx[: , 0] - toa_rx[0, 0] - (toa_tx[: ,0] * dt - toa_tx[0, 0]*dt[0])
+    tmp_rx[:,1] = toa_rx[: , 1] - toa_rx[0, 1] - (toa_tx[:, 1] * dt - toa_tx[0, 1]*dt[0])
     
     ## TDoA
     #     tdoa = tmp_rx(:,2) - tmp_tx(:,2);
@@ -493,7 +446,6 @@ def TDoA(ts, dt):
     x_t = (np.matmul(np.linalg.pinv(del_f), (D- f.T).T)).T + x_t_0
 
     return x_t[0,0], x_t[0,1], x_t[0,2], dt_new
-
 
 
 

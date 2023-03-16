@@ -99,16 +99,16 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
             f.write('\n')
 
             Npwm = 50
-            p1.ChangeDutyCycle(Npwm)
-            p2.ChangeDutyCycle(Npwm)
+            #p1.ChangeDutyCycle(Npwm)
+            #p2.ChangeDutyCycle(Npwm)
             # Misuro con UWB la posizione nel frattempo 
             x_pos, y_pos, z_pos, acc_x, acc_y, acc_z, gyr = misuration()
             #positions = np.append(positions, [x_pos, y_pos])
             x = np.append(x, x_pos)
             y = np.append(y, y_pos)
 
-    Npwm = 100
-    p1.ChangeDutyCycle(Npwm)
+    Npwm = 0
+    #p1.ChangeDutyCycle(Npwm)
     p2.ChangeDutyCycle(Npwm)
     quat_final = quat # the last quaternion is stored as input for the madgwick later...
     roll_0 = sum(roll_vec[-40 :])/40 #perform the mean of the last 20 element

@@ -104,7 +104,7 @@ class Quaternion:
         pitch = (np.arcsin(2 * (self[1] * self[3] + self[0] * self[1])))
         yaw = (np.arctan2(-2 * (self[1] * self[2] - self[0] * self[3]), self[0] ** 2 + self[1] ** 2 - self[2] ** 2 - self[3] ** 2))
         
-        return roll, pitch, yaw
+        return roll*180/np.pi, pitch*180/np.pi, yaw*180/np.pi
 
     
 
