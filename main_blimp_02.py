@@ -4,12 +4,14 @@
 import warnings
 import socket
 import RPi.GPIO as IO 
-from blimp_class import Madgwick, calibration, PID_Controller, trilateration, TDoA #, kalman_blimp
+from blimp_class import Madgwick, calibration, trilateration, TDoA 
+#, kalman_blimp
+from PID import PID_Controller
 import numpy as np
 import math
 from numpy.linalg import norm
 from quaternion import Quaternion
-import Blimp.serial as serial
+import serial
 import time
 import select
 import threading
@@ -99,7 +101,7 @@ rl = ReadLine(hser)
 # nello spazio e stabilire orientazione dei suoi assi 
 # rispetto al sistema di riferimento globale 
 
-def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
+'''def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
     q0 = Quaternion(0, 0, 0, 1)
     mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1)
     roll_vec = []
@@ -162,7 +164,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
 
     
 # Per usare la funzione blimp to world correttamente 
-# phi_mad_abs = delta + phi_mad_relative . # Se mantengo gli angoli anche negativi funziona bene 
+# phi_mad_abs = delta + phi_mad_relative . # Se mantengo gli angoli anche negativi funziona bene '''
 
 
 # Function to call for get measurement of all the sensors togheter
@@ -202,7 +204,7 @@ def misuration():
 
     #From UWB Absolute Reference frame, meters
         # CHIEDERE CODICE !
-    try:
+    '''try:
         #while True:
         mesg = rl.readline().decode("utf-8")
         print(mesg)
@@ -217,7 +219,7 @@ def misuration():
     dt_uwb = 1e-3 
     x_pos_uwb, y_pos_uwb, z_pos_uwb, dt_new = TDoA(ts, dt_uwb)
     
-    print("coordinate = ", x_pos_uwb, y_pos_uwb, z_pos_uwb)
+    print("coordinate = ", x_pos_uwb, y_pos_uwb, z_pos_uwb)'''
 
     d1 = 6.40311549 
     d2= 3.5336808
@@ -230,7 +232,7 @@ def misuration():
 
 
 
-    return x_pos, y_pos, z_pos, acc[0], acc[1], acc[2], gyr[2] 
+    return x_pos, y_pos, z_pos_tri, acc[0], acc[1], acc[2], gyr[2] 
 
 
 
@@ -242,7 +244,7 @@ if __name__ == "__main__":
 
     # Primo step, calcolo della orientazione iniziale del 
     # dirigibile nello spazio
-    delta, ang_rad, quat_final = blimp_to_world_rf(icm.acceleration,icm.gyro, icm.magnetic) #==> delta, ang rad
+    #delta, ang_rad, quat_final = blimp_to_world_rf(icm.acceleration,icm.gyro, icm.magnetic) #==> delta, ang rad
 
     # Calcolare la traiettoria da seguire con il path planner
 
@@ -251,9 +253,9 @@ if __name__ == "__main__":
     mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1) 
     
     # PID initialization
-    dist_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
-    phi_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
-    z_pid = PID_Controller(kp= 1, ki = 1, kd = 1)
+    dist_pid = PID_Controller(kp= 1, ki = 1, kd = 1, max_signal =12, sample_rate=1.0/100, target=0.0)
+    phi_pid = PID_Controller(kp= 1, ki = 1, kd = 1,max_signal =12, sample_rate=1.0/100, target=0.0)
+    z_pid = PID_Controller(kp= 1, ki = 1, kd = 1, max_signal =12, sample_rate=1.0/100, target=0.0)
 
     traj = np.array([[0, 0, 1],
                      [1, 1, 1],
@@ -283,21 +285,22 @@ while 1:
     #setting the variable frequency of updateof Madgwick alghorithm
     mad.samplePeriod = time_fine - time_zero
     quaternion = mad.update(gyroscope, accelerometer, magnetometer)
-    time_zero = time.perf_counter()
+    #time_zero = time.perf_counter() ORIGINAL TIME ZERO FOR MADGWICK ALONE
     quat = Quaternion(quaternion)
     roll, pitch, yaw = quat.to_euler123()
     phi = yaw #measured orientation
     #OtHer sensors
     pos_x, pos_y, pos_z, acc_x, acc_y, acc_z, phi_vel = misuration()
-    
+    print("Entro in PID")
 
     # Z_PID block of code 
     z_pid.set_new_target(z_target)
-    #z_pid.sample_rate = differenza di tempo da capire
+    z_pid.sample_rate = time_fine - time_zero
     signal_z = z_pid.adjust_signal(pos_z)
     force_z =z_pid.get_force_z(signal_z) # Questa serve per il Kalman
     #kal.Fu = force_z
     z_pwm = z_pid.pwm_z_motor(force_z) # Questa serve per i motori
+    print("Z_PWM =", z_pwm)
     #if Npwm_z >= 0:
         # geDutyCycle(Npwm_z)
     #else:p1.Chan
@@ -309,19 +312,22 @@ while 1:
     dist_dist = math.sqrt((pos_x-point_target[0])**2 + (pos_y - point_target[1])**2)
     phi_pid.set_new_target(psi_target)
     dist_pid.set_new_target(dist_target)
-    #phi_pid.sample_rate = differenza di tempo da capire
-    #dist_pid.sample_rate = differenza di tempo da capire
+    phi_pid.sample_rate = time_fine - time_zero
+    dist_pid.sample_rate = time_fine - time_zero
+    time_zero = time.perf_counter()
     signal_phi = phi_pid.adjust_signal(phi)
     signal_dist = dist_pid.adjust_signal(dist_dist)
     force_l, force_r =dist_pid.get_force_lateral(signal_dist, signal_phi) # Questa serve per il Kalman
     #kal.Fl = force_l
     #kal.Fr = force_r
     l_pwm = dist_pid.pwm_L_motor(force_l) # Questa serve per i motori
+    print("L_PWM =", l_pwm)
     #if l_pwm >= 0:
         # p2.ChangeDutyCycle(l_pwm)
     #else:
         #p2i.ChangeDutyCycle(-l_pwm)
     r_pwm = dist_pid.pwm_R_motor(force_r) # Questa serve per i motori
+    print("R_PWM =", r_pwm)
     #if r_pwm >= 0:
         # p3.ChangeDutyCycle(r_pwm)
     #else:
