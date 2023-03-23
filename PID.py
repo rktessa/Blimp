@@ -40,7 +40,7 @@ class PID_Controller:
         self.signal = 0
         self.accumulator = 0
         self.last_reading = 0
-        self.xa = 13.5 #in cm 
+        self.xa = 0.140 #in m 
 
 
 

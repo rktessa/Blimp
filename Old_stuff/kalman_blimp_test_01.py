@@ -384,7 +384,7 @@ class kalman_blimp:
 # Example of how use the code for the Kalman filter
 if __name__ == "__main__":
 
-    kal = kalman_blimp(dt = 0.1, Fl = 0.2,  Fr = 0.2 , Fu = 0.001, phi_pos=0.0)
+    kal = kalman_blimp(dt = 0.1, Fl = 2,  Fr = 2 , Fu = 0.001, phi_pos=0.0)
     # When the class is initialized, here I can insert the intial coordinate
     # for position and orientation in Global reference frame. 
 
@@ -428,11 +428,12 @@ fig1 =plt.figure()
 plt.plot(x_P,y_P)
 plt.grid()
 
-fig2 = plt.figure()
 
+
+fig2 = plt.figure()
 plt.plot(time,phi_mis)
-plt.set_xlabel('Time')
-plt.set_ylabel('phi_meas')
+#plt.set_xlabel('Time')
+#plt.set_ylabel('phi_meas')
 
 
 fig = plt.figure()

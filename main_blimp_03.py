@@ -19,6 +19,9 @@ import board
 from adafruit_icm20x import ICM20948, MagDataRate
 
 
+mag_file = open("data_UWB.txt","w")
+data_string = ""
+
 #Definizione di tutti i pin per uso
 #Definizione di tutti i pin per uso
 m1 = 17 #sinistro
@@ -128,7 +131,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
 
         time_zero = time.perf_counter()
         time_start = time.perf_counter()
-        while  time.perf_counter() < (time_start +2):
+        while  time.perf_counter() < (time_start + 20 ):
             #Aquisizione magnetometro e calibrazione dei dati:
             mag = calibration(raw_mag)
             #Creazione vettore input per classe madgwick
@@ -165,6 +168,8 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
             x = np.append(x, x_pos_uwb)
             y = np.append(y, y_pos_uwb)
 
+            data_string = str(x_pos_uwb) + " ," + str(y_pos_uwb) + " ," + str(z_pos_uwb) + " ," + str(yaw) + "\n"
+            mag_file.write(data_string)
             
     
     except KeyboardInterrupt:
@@ -194,7 +199,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
     
 
     ang_rad = np.arctan(b) # the inclination of the line calculated in rad with uwb
-    delta = np.abs(ang_rad-yaw_0)
+    delta = yaw_0 -ang_rad
 
 
     return delta, ang_rad, quat_final, yaw_0 # These are the values of initial angles
@@ -202,7 +207,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
     # quat_final is the initial input for Madgwick relaunch
     
     # Per usare la funzione blimp to world correttamente 
-    # !! psi_mad_abs = delta + psi_mad_relative . # Se mantengo gli angoli anche negativi funziona bene '''
+    # !! psi_mad_abs =  + psi_mad_relative - delta. # Se mantengo gli angoli anche negativi funziona bene '''
 
 
 # Function to call for get measurement of all the sensors togheter
@@ -273,7 +278,8 @@ def misuration():
     # How the code works for sensors
 
 if __name__ == "__main__":
-
+    mag_file = open("data_UWB2.txt","w")
+    data_string = ""
     # ORIENTAZIONE NEL GLOBAL REFERENCE FRAME
     # Qui posso lanciare tutte le operazioni preliminari
     # per il corretto funzionamento del codice
@@ -288,7 +294,7 @@ if __name__ == "__main__":
     print("yaw_0  del blimp per il Madgwick= ", yaw_0*180/np.pi)
 
 
-
+    
     ##############################################
     # UWB
     #############################################
@@ -316,7 +322,7 @@ if __name__ == "__main__":
         #delta, ang_rad, quat_final = blimp_to_world_rf(icm.acceleration,icm.gyro, icm.magnetic) #==> delta, ang rad
 
         # Calcolare la traiettoria da seguire con il path planner
-
+        '''
         #Madgwick initialization
         q0 = Quaternion(0, 0, 0, 1)
         mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1) 
@@ -438,14 +444,15 @@ if __name__ == "__main__":
                     # p3.ChangeDutyCycle(r_pwm)
                 #else:
                     #p3i.ChangeDutyCycle(-r_pwm)
-                '''
+                
                 if dist_dist < 0.1:
                     val = val+1
                     # aumenti un array trajectory
                     z_pid.set_new_target(traj[val][0])
                     phi_pid.set_new_target(traj[val][1])
                     dist_pid.set_new_target(traj[val][2])
-                '''
+                
+        '''
 
     except KeyboardInterrupt:
         hser.close()

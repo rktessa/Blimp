@@ -4,9 +4,8 @@
 import warnings
 import socket
 import RPi.GPIO as IO 
-from blimp_class import Madgwick, calibration, trilateration, TDoA, TDoA_dt, reject_outliers
-#, kalman_blimp
-from PID import PID_Controller
+from blimp_class import Madgwick, calibration, trilateration, TDoA, TDoA_dt, reject_outliers, ReadLine, PID_Controller, psi_map
+#, kalman_blimp 
 import numpy as np
 import math
 from numpy.linalg import norm
@@ -18,6 +17,9 @@ import threading
 import board
 from adafruit_icm20x import ICM20948, MagDataRate
 
+
+mag_file = open("data_UWB.txt","w")
+data_string = ""
 
 #Definizione di tutti i pin per uso
 #Definizione di tutti i pin per uso
@@ -68,36 +70,11 @@ icm.magnetometer_data_rate = MagDataRate.RATE_100HZ
 # Codice per provare a usare UWB
 mesg = {}
 
-class ReadLine:
-    def __init__(self, s):
-        self.buf = bytearray()
-        self.s = s
-    
-    def readline(self):
-        i = self.buf.find(b"\n")
-        if i >= 0:
-            r = self.buf[:i+1]
-            self.buf = self.buf[i+1:]
-            return r
-        while True:
-            i = max(1, min(2048, self.s.in_waiting))
-            data = self.s.read(i)
-            i = data.find(b"\n")
-            if i >= 0:
-                r = self.buf + data[:i+1]
-                self.buf[0:] = data[i+1:]
-                return r
-            else:
-                self.buf.extend(data)
-
-
 #SET OUTPUT MESSAGE
 hser = serial.Serial( '/dev/serial0', 921600, timeout = 0)
 rl = ReadLine(hser)
 
 ######################################################
-
-
 
 ###############################################################
 # Codice per stabilire rotazione iniziale del Blimp
@@ -106,9 +83,9 @@ rl = ReadLine(hser)
 #################################################################
 
 
-def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
+def blimp_to_world_rf():
     q0 = Quaternion(0, 0, 0, 1)
-    mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1)
+    mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=0.35)
     roll_vec = []
     pitch_vec = []
     yaw_vec = []
@@ -128,11 +105,14 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
 
         time_zero = time.perf_counter()
         time_start = time.perf_counter()
-        while  time.perf_counter() < (time_start +2):
+        while  time.perf_counter() < (time_start + 20 ):
+            raw_acc, raw_gyr, raw_mag = icm.acceleration,icm.gyro, icm.magnetic
             #Aquisizione magnetometro e calibrazione dei dati:
             mag = calibration(raw_mag)
             #Creazione vettore input per classe madgwick
             accelerometer, gyroscope, magnetometer = np.asarray(raw_acc), np.asarray(raw_gyr), np.asarray(mag)
+            # print(magnetometer)
+
             time_fine = time.perf_counter()
             #setting the variable frequency of updateof Madgwick alghorithm
             mad.samplePeriod = time_fine - time_zero
@@ -162,9 +142,15 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
                 dt_uwb[i] = np.mean(reject_outliers(tempi_dt[i,:], m=2))
             #dt_uwb = np.mean(reject_outliers(tempi_dt))
             #dt_uwb = dt_new
-            x = np.append(x, x_pos_uwb)
-            y = np.append(y, y_pos_uwb)
+            if abs(x_pos_uwb) <= 25.0 and abs(y_pos_uwb) <= 25.0 :
+                x = np.append(x, x_pos_uwb)
+                y = np.append(y, y_pos_uwb)
 
+
+
+
+            data_string = str(x_pos_uwb) + " ," + str(y_pos_uwb) + " ," + str(z_pos_uwb) + " ," + str(yaw) + "\n"
+            mag_file.write(data_string)
             
     
     except KeyboardInterrupt:
@@ -194,7 +180,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
     
 
     ang_rad = np.arctan(b) # the inclination of the line calculated in rad with uwb
-    delta = np.abs(ang_rad-yaw_0)
+    delta = yaw_0 -ang_rad
 
 
     return delta, ang_rad, quat_final, yaw_0 # These are the values of initial angles
@@ -202,8 +188,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
     # quat_final is the initial input for Madgwick relaunch
     
     # Per usare la funzione blimp to world correttamente 
-    # !! psi_mad_abs = delta + psi_mad_relative . # Se mantengo gli angoli anche negativi funziona bene '''
-
+    # !! psi_mad_abs =  + psi_mad_relative - delta. # Se mantengo gli angoli anche negativi funziona bene '''
 
 # Function to call for get measurement of all the sensors togheter
 def misuration():
@@ -273,14 +258,15 @@ def misuration():
     # How the code works for sensors
 
 if __name__ == "__main__":
-
+    mag_file = open("data_UWB2.txt","w")
+    data_string = ""
     # ORIENTAZIONE NEL GLOBAL REFERENCE FRAME
     # Qui posso lanciare tutte le operazioni preliminari
     # per il corretto funzionamento del codice
 
     # Primo step, calcolo della orientazione iniziale del 
     # dirigibile nello spazio
-    delta, ang_rad, quat_final, yaw_0 = blimp_to_world_rf(icm.acceleration,icm.gyro, icm.magnetic) #==> delta, ang rad
+    delta, ang_rad, quat_final, yaw_0 = blimp_to_world_rf() #==> delta, ang rad
      # Plotting the final results
     print("Differenza Angolo Madgwick e assoluto = ", delta*180/np.pi)
     print("Angolo nel Global RF = ", ang_rad*180/np.pi)
@@ -288,7 +274,7 @@ if __name__ == "__main__":
     print("yaw_0  del blimp per il Madgwick= ", yaw_0*180/np.pi)
 
 
-
+    
     ##############################################
     # UWB
     #############################################
@@ -316,7 +302,7 @@ if __name__ == "__main__":
         #delta, ang_rad, quat_final = blimp_to_world_rf(icm.acceleration,icm.gyro, icm.magnetic) #==> delta, ang rad
 
         # Calcolare la traiettoria da seguire con il path planner
-
+        '''
         #Madgwick initialization
         q0 = Quaternion(0, 0, 0, 1)
         mad = Madgwick(sampleperiod = 1/100, quaternion=q0, beta=1) 
@@ -438,14 +424,15 @@ if __name__ == "__main__":
                     # p3.ChangeDutyCycle(r_pwm)
                 #else:
                     #p3i.ChangeDutyCycle(-r_pwm)
-                '''
+                
                 if dist_dist < 0.1:
                     val = val+1
                     # aumenti un array trajectory
                     z_pid.set_new_target(traj[val][0])
                     phi_pid.set_new_target(traj[val][1])
                     dist_pid.set_new_target(traj[val][2])
-                '''
+                
+        '''
 
     except KeyboardInterrupt:
         hser.close()
