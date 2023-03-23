@@ -63,6 +63,9 @@ capire dove inserire i time counter per avere l'effettivo sample rate del codice
 
 definire il dist_init
 
+Abbiamo spostato nel file **PID** la classe pid control che stiamo cercando di debuggare adesso. 
+Il file corrente in uso Ã¨ **main_blimp_02**
+
 
 
 ## Trilateration e LLS e WLS
@@ -93,3 +96,12 @@ Inoltre la prova con una prima elica toroidale ha dato degli ottimi risultati, Ã
 ## Programma per la misurazione
 Un'idea interessante per gestire tutti i dati dei sensori potrebbe essere quello di scrivere un programma che integra un protocollo di comunicazione molto basilare con tutte le funzioni che abbiamo per il rilevamento dei sensori del dirigibile. Potrei provare a usare **zeroMQ** per questo scopo. 
 
+
+## MADGWICK
+
+    prove con diversi beta, non 1 che rende la misura troppo instabile, set a 0.35 ok, i valori oscillano in un intorno di 4 gradi circa. 
+
+
+## UWB
+
+BISOGNA PER FORZA IMPLEMENTARE NEL MAIN CHE QUANDO SI STACCA IL PROGRAMMA IL SERIAL DI LETTURA DELLE ANCORE DEVE ESSERE CHIUSO ALTRIMENTI SI ROMPE TUTTO IL CODICE. 
