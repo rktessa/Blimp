@@ -2,7 +2,7 @@
 # The implemented Kalman filter traks the motion in x, y, z directions,
 # the acceleration in the same directions and the yaw orientation and angular velocity.
 # Jan 23
-# Riccardo Tessarin, Federico Marchi
+# Riccardo Tessarin
 
 import math
 import numpy as np
@@ -78,9 +78,9 @@ def reshape_z(z, dim_z, ndim):
 # Definition of the matrices used in 
 # Kalman filter
 class kalman_blimp:
-    c = 1.60/2.0 # m half lenght of blim on x axis
-    b = 0.50/2.0 # m half lenght of blim on y axis
-    dt = 0.01
+    c = 1.60/2.0 # m half lenght of blimp on x axis
+    b = 0.50/2.0 # m half lenght of blimp on y axis
+    dt = 1 
     xR = 0.0675 # m distance of R motor from CG
     xL = 0.0675 # m distance of R motor from CG
     m = 0.2713 # kg total mass of airship
@@ -119,7 +119,7 @@ class kalman_blimp:
        
     def initialization(self):
         
-        # State vector is x = [x, x', y, y', z, z', phi, phi' ]
+        # State vector is x = [x, x'', y, y'', z, z'', phi, phi' ]
         # at the beginning is initialized with the value for position
         # measured by sonar, madgwick and uwbz
         x = np.transpose(np.array([self.x_pos, 0.0, self.y_pos, 0.0, self.z_pos, 0.0, self.phi_pos, 0.0]))
@@ -153,13 +153,13 @@ class kalman_blimp:
         P = np.diag([2.0, 0.1, 2.0, 0.1, 2.0, 0.1, 2*np.pi, 2*np.pi ])
         
         # Q è calcolata a caso al momento
-        Q =  np.diag([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ])
+        Q =  np.diag([0.1, 0.001, 0.1, 0.001, 0.1, 0.001, 0.001, 0.001 ])
 
         # H is an Identity matrix beacuse all the quantities are directly measured by
         # a dedicated sensor
         H = np.diag([1., 1., 1., 1., 1., 1., 1., 1. ])
 
-        R = np.diag([0.01, 0.001, 0.01, 0.001, 0.01, 0.001, 0.001, 0.001])
+        R = np.diag([0.1, 0.001, 0.1, 0.001, 0.1, 0.001, 0.001, 0.001])
         
         return F, B, u_t ,x, P, Q, H, R
 

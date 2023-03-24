@@ -152,6 +152,7 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
             #Npwm = 50
             #p1.ChangeDutyCycle(Npwm)
             #p2.ChangeDutyCycle(Npwm)
+            #################
             # Misuro con UWB la posizione nel piano  frattempo 
             mesg = rl.readline().decode("utf-8")
             #print(mesg)
