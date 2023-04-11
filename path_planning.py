@@ -90,7 +90,7 @@ class Astar():
                     self.g[pn] = self.g[p] + inter 
                     # Non serve però ricalcolare la h, quella non cambia
 
-            if img is not None:
+            '''if img is not None:
                 cv2.circle(img, (start[0], start[1]), 5, (0, 0, 1), 3)
                 cv2.circle(img, (goal[0], goal[1]), 5, (0, 1, 0), 3)
                 cv2.circle(img, p, 2, (0, 0, 1), 1)
@@ -98,7 +98,7 @@ class Astar():
                 cv2.imshow("A* Test", img_)
                 k = cv2.waitKey(1)
                 if k == 27:
-                    break
+                    break'''
 
 
         # Extract path
@@ -151,9 +151,39 @@ if __name__ == "__main__":
    
     for i in range(len(path)-1):
         cv2.line(img, path[i], path[i+1], (1,0,0,),1)
+        
         #cv2.line(img, path_rasp[i], path_rasp[i+1], (0,1,0), 1)
     img_ = cv2.flip(img, 0)
-    cv2.imshow("A* Test", img_)
-    plt.imshow(img_), plt.title('Path Planning in Mechatronics Lab'), plt.show()
-    k = cv2.waitKey(0)
+    #cv2.imshow("A* Test", img_)
+    plt.imshow(img_), plt.title('Path Planning in Mechatronics Lab')
+    plt.ion()
+    plt.show()
+    plt.pause(0.5)
+    #k = cv2.waitKey(0)
+
+    l = 0
+    for l in range (30):
+        img = cv2.flip(cv2.imread("C:\Volume_D\Programming\Blimp_git\Blimp\lab_meccatronica.png"),0)
+        #flip = img[::-1,:,:] # revise height in (height, width, channel)
+        img[img > 128] = 255
+        img[img <= 128] = 0
+        m = np.asarray(img)
+        m = cv2.cvtColor(m, cv2.COLOR_RGB2GRAY)
+        m = m.astype(float) / 255.
+        m = 1-cv2.dilate(1-m, np.ones((20, 20))) #inflate for avoid the obstacle 
+        img = img.astype(float)/255.
+
+        for i in range(len(path)-1):
+            cv2.line(img, path[i], path[i+1], (1,0,0,),1)
+
+        cv2.circle(img, (start[0], start[1]), 5, (0, 0, 1), 3)
+        cv2.circle(img, (goal[0], goal[1]), 5, (0, 1, 0), 3)
+        
+        cv2.circle(img, (path[l][0], path[l][1]), 5, (0, 1, 0), 3)
+
+        img_ = cv2.flip(img, 0)
+        plt.imshow(img_), plt.title('Path Planning in Mechatronics Lab')
+        plt.show()
+        plt.pause(0.1)
+        l = l+1
 

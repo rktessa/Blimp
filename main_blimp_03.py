@@ -159,15 +159,17 @@ def blimp_to_world_rf(raw_acc, raw_gyr, raw_mag):
             ts = mesg.split(" ")
             
             x_pos_uwb, y_pos_uwb, z_pos_uwb, dt_new = TDoA(ts, dt_uwb)
-            print(x_pos_uwb,y_pos_uwb)
+            
             dt_new = np.reshape(dt_new, (1,6))
             tempi_dt = np.append(tempi_dt,dt_new, axis=0)
             for i in range(len(dt_new)) :
                 dt_uwb[i] = np.mean(reject_outliers(tempi_dt[i,:], m=2))
             #dt_uwb = np.mean(reject_outliers(tempi_dt))
             #dt_uwb = dt_new
-            x = np.append(x, x_pos_uwb)
-            y = np.append(y, y_pos_uwb)
+            if abs(x_pos_uwb) < 25 and abs(y_pos_uwb) and x_pos_uwb > 0 and y_pos_uwb > 0:
+                x = np.append(x, x_pos_uwb)
+                y = np.append(y, y_pos_uwb)
+                print(x_pos_uwb,y_pos_uwb)
 
             data_string = str(x_pos_uwb) + " ," + str(y_pos_uwb) + " ," + str(z_pos_uwb) + " ," + str(yaw) + "\n"
             mag_file.write(data_string)

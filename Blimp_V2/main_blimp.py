@@ -80,11 +80,11 @@ def blimp_to_world_rf():
 
     ##################################################################
     # Codice per provare a usare UWB
-    mesg_0 = {}
+    #mesg_0 = {}
 
     # SET OUTPUT MESSAGE
-    hser0 = serial.Serial( '/dev/serial0', 921600, timeout = 0)
-    rl0 = ReadLine(hser0)
+    #hser0 = serial.Serial( '/dev/serial0', 921600, timeout = 0)
+    #rl0 = ReadLine(hser0)
 
     ######################################################
 
@@ -101,7 +101,7 @@ def blimp_to_world_rf():
     tempi_dt = np.zeros((1,6))
 
     try:
-        mesg0 = rl0.readline().decode("utf-8")
+        mesg0 = rl.readline().decode("utf-8")
         ts = mesg0.split(" ")
         dt_uwb = TDoA_dt(ts)  # Calcola dt iniziale
         tempi_dt[0,:] = dt_uwb
@@ -130,9 +130,9 @@ def blimp_to_world_rf():
             yaw_vec.append(yaw_mapped*np.pi/180)
             
             # Misuro con UWB la posizione nel piano  frattempo 
-            mesg_0 = rl0.readline().decode("utf-8")
+            mesg0 = rl.readline().decode("utf-8")
             
-            ts = mesg_0.split(" ")
+            ts = mesg0.split(" ")
             
             x_pos_uwb, y_pos_uwb, z_pos_uwb, dt_new = TDoA(ts, dt_uwb)
 
@@ -153,7 +153,7 @@ def blimp_to_world_rf():
             
     
     except KeyboardInterrupt:
-        hser0.close()
+        hser.close()
         print ('Serial port closed')
 
     quat_final = quat # the last quaternion is stored as input for the madgwick later
@@ -172,7 +172,7 @@ def blimp_to_world_rf():
     delta = yaw_0 - ang_rad
 
     # Prima di finire chiudi la serial port
-    hser0.close()
+    
 
     return delta, ang_rad, quat_final, yaw_0, x[-1], y[-1] # These are the values of initial angles
     # This ang_rad is the parameter to insert in both the A* and PID phi as initial orientation calculation
@@ -241,7 +241,7 @@ def main():
 
 
     start = (int(x_pos_init*100),int(y_pos_init*100)) ## MY case
-    goal = (255, 760)
+    goal = (250, 760)
 
     
     astar = Astar(m)
@@ -264,13 +264,7 @@ def main():
     #############################################
     tempi_dt = np.zeros((1,6))
 
-    # Codice per provare a usare UWB
-    mesg = {}
-
-    # SET OUTPUT MESSAGE
-    hser = serial.Serial( '/dev/serial0', 921600, timeout = 0)
-    rl = ReadLine(hser)
-
+    
 
 
     try:
@@ -318,9 +312,12 @@ def main():
             time_zero = time.perf_counter() #ORIGINAL TIME ZERO FOR MADGWICK ALONE
             quat = Quaternion(quaternion)
             roll, pitch, yaw = quat.to_euler123()
-            psi_mapped = psi_map(yaw*180/np.pi) - delta*180/np.pi # deg
+            psi_mapped = psi_map(yaw*180/np.pi) # deg
             
-            psi = psi_mapped * np.pi/180
+            psi = psi_mapped * np.pi/180 - delta # rad
+            if psi < 0:
+                psi = psi + 2*np.pi
+            
 
             #######################
             # UWB ALWAYS WORKING
@@ -438,12 +435,19 @@ def main():
 
 
 if __name__ == "__main__":
+
+    # Codice per provare a usare UWB
+    mesg = {}
+
+    # SET OUTPUT MESSAGE
+    hser = serial.Serial( '/dev/serial0', 921600, timeout = 0)
+    rl = ReadLine(hser)
+
     try:
         main()  
 
     except TypeError: 
         print("Crashed :/")
-        hser0.close()
         hser.close()
         print ('Serial port closed')
         p1.ChangeDutyCycle(0)
@@ -457,7 +461,6 @@ if __name__ == "__main__":
 
     except ValueError: 
         print("Crashed :/")
-        hser0.close()
         hser.close()
         print ('Serial port closed')
         p1.ChangeDutyCycle(0)
@@ -473,7 +476,6 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("Interrupted")
-        hser0.close()
         hser.close()
         print ('Serial port closed')
         p1.ChangeDutyCycle(0)

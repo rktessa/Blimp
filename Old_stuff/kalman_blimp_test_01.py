@@ -79,7 +79,7 @@ def reshape_z(z, dim_z, ndim):
 # Kalman filter
 class kalman_blimp:
     c = 1.60/2.0 # m half lenght of blimp on x axis
-    b = 0.50/2.0 # m half lenght of blimp on y axis
+    b = 0.40/2.0 # m half lenght of blimp on y axis
     dt = 1 
     xR = 0.0675 # m distance of R motor from CG
     xL = 0.0675 # m distance of R motor from CG
@@ -133,10 +133,18 @@ class kalman_blimp:
                     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, self.dt],
                     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
 
-        B = np.array([[0.0, 0.0, 0.0],
+        '''B = np.array([[0.0, 0.0, 0.0],
                     [1.0/self.m, 1.0/self.m, 0.0],
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0/self.m],
+                    [0.0, 0.0, 0.0],
+                    [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])'''
+        B = np.array([[0.0, 0.0, 0.0],
+                    [math.cos(self.phi_pos)/self.m, math.cos(self.phi_pos)/self.m, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [math.sin(self.phi_pos)/self.m, math.sin(self.phi_pos)/self.m, 0.0],
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 1.0/self.m],
                     [0.0, 0.0, 0.0],
@@ -150,16 +158,15 @@ class kalman_blimp:
         
         #State covariance matrix
         # maybe in P it is better to put a rad and rad/s value for phi and phi vel.
-        P = np.diag([2.0, 0.1, 2.0, 0.1, 2.0, 0.1, 2*np.pi, 2*np.pi ])
-        
+        P = np.diag([0.0064, 0.0005, 0.0030, 0.0007, 0.00034, 0.002, 0.00015, 0.0000012])
         # Q è calcolata a caso al momento
-        Q =  np.diag([0.1, 0.001, 0.1, 0.001, 0.1, 0.001, 0.001, 0.001 ])
+        Q =  np.diag([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ])*0.001
 
         # H is an Identity matrix beacuse all the quantities are directly measured by
         # a dedicated sensor
         H = np.diag([1., 1., 1., 1., 1., 1., 1., 1. ])
 
-        R = np.diag([0.1, 0.001, 0.1, 0.001, 0.1, 0.001, 0.001, 0.001])
+        R = np.diag([0.0064, 0.0005, 0.0030, 0.0007, 0.00034, 0.002, 0.00015, 0.0000012])
         
         return F, B, u_t ,x, P, Q, H, R
 
@@ -232,8 +239,8 @@ class kalman_blimp:
         
         #x_pre = np.dot(R,F)
         #x = np.dot(x_pre, x) + np.dot(B, u)
-        x = np.dot(F, x) + np.dot(B2, u)
-        P = (alpha * alpha) * np.dot(np.dot(F, P), F.T) + Q
+        x = np.matmul(F, x) + np.matmul(B2, u)
+        P = (alpha * alpha) * np.matmul(np.matmul(F, P), F.T) + Q
         # write in a csv file the x at each iteration
         return x, P
     
@@ -307,40 +314,40 @@ class kalman_blimp:
         if np.isscalar(H):
             H = np.array([H])
 
-        Hx = np.atleast_1d(np.dot(H, x))
+        Hx = np.atleast_1d(np.matmul(H, x))
         z = reshape_z(z, Hx.shape[0], x.ndim)
 
         # error (residual) between measurement and prediction
         y = z - Hx
 
         # project system uncertainty into measurement space
-        S = np.dot(np.dot(H, P), H.T) + R
+        S = np.matmul(np.matmul(H, P), H.T) + R
 
 
         # map system uncertainty into kalman gain
         try:
-            K = np.dot(np.dot(P, H.T), inv(S))
+            K = np.matmul(np.matmul(P, H.T), inv(S))
         except:
             # can't invert a 1D array, annoyingly
-            K = np.dot(np.dot(P, H.T), 1./S)
+            K = np.matmul(np.matmul(P, H.T), 1./S)
 
 
         # predict new x with residual scaled by the kalman gain
-        x = x + np.dot(K, y)
+        x = x + np.matmul(K, y)
 
         # P = (I-KH)P(I-KH)' + KRK'
-        KH = np.dot(K, H)
+        KH = np.matmul(K, H)
 
         try:
             I_KH = np.eye(KH.shape[0]) - KH
         except:
             I_KH = np.array([1 - KH])
-        P = np.dot(np.dot(I_KH, P), I_KH.T) + np.dot(np.dot(K, R), K.T)
-
+        #P = np.matmul(np.matmul(I_KH, P), I_KH.T) + np.matmul(np.matmul(K, R), K.T)
+        P = np.matmul(I_KH, P)
 
         if return_all:
             # compute log likelihood
-            log_likelihood = np.logpdf(z, np.dot(H, x), S)
+            log_likelihood = np.logpdf(z, np.matmul(H, x), S)
             return x, P, y, K, S, log_likelihood
         return x, P
 
@@ -356,7 +363,7 @@ class kalman_blimp:
         
 
         proc_var = np.array([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ]) #correspond to Q
-        z_var = np.array([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]) # correspond to R
+        z_var = np.array([0.0064, 0.0005, 0.0030, 0.0007, 0.00034, 0.002, 0.00015, 0.0000012])  # correspond to R
         z_std = np.sqrt(z_var) 
         p_std = np.sqrt(proc_var)
         pos_x = x[0] + np.random.randn() * z_std[0]
@@ -384,7 +391,7 @@ class kalman_blimp:
 # Example of how use the code for the Kalman filter
 if __name__ == "__main__":
 
-    kal = kalman_blimp(dt = 0.1, Fl = 2,  Fr = 2 , Fu = 0.001, phi_pos=0.0)
+    kal = kalman_blimp(dt = 0.1, Fl = 1,  Fr = 1 , Fu = 0.0012, phi_pos=0.0)
     # When the class is initialized, here I can insert the intial coordinate
     # for position and orientation in Global reference frame. 
 
@@ -420,9 +427,9 @@ x_pred = np.delete(x_pred, (0), axis=0)
 x_P = x_pred[:,0]
 y_P = x_pred[:,2]
 z_P = x_pred[:, 4]
-phi_mis = (x_pred[:, 6])/180*np.pi
+phi_mis = (x_pred[:, 6])#/180*np.pi
 time = np.arange(0, 100, 1)
-print(x_P)
+print(P)
 
 fig1 =plt.figure()
 plt.plot(x_P,y_P)
