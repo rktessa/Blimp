@@ -105,3 +105,33 @@ Un'idea interessante per gestire tutti i dati dei sensori potrebbe essere quello
 ## UWB
 
 BISOGNA PER FORZA IMPLEMENTARE NEL MAIN CHE QUANDO SI STACCA IL PROGRAMMA IL SERIAL DI LETTURA DELLE ANCORE DEVE ESSERE CHIUSO ALTRIMENTI SI ROMPE TUTTO IL CODICE. 
+
+
+# LISTA DEI CODICI IN USO
+## Aggiornato 13 Aprile 2023
+
+Cartella corrente Blimp_V4 cin dentro:
+
+- **calibrazione_madgwick.py** Stampa risultati di Madgwick e Mad mappato, per calibrare a esattamente 90 gradi le rotazioni.
+
+- **calibrate_magnetometer.py** Acquisisce i dati grezzi del magnetometro per 60 secondi e fa Hard e Soft Iron calibration
+
+- **blimp_class.py** Contiene tutte le classi in uso: Astar, PID, Kalman, Madgwick, Reject Outliers, RTDoA, calibration, print calibration, trilateration, PSI mapped
+
+- **main_blimp.py** In cui cerchiamo di far andare tutto il codice assieme. 
+
+- **kalman_blimp.py** per testare l'uso di Kalman: Inizialmente stando fermo acquisisce orientazione rispetto al global RF e stima con una media la posizione di partenza. 
+Poi 
+
+Frequenze di campionamento dei sensori: 
+
+Sonar = 2 Hz
+Madgwick = real time dt del codice
+UWB = il serial va a 916000 Hz
+TdOA = 2Hz
+IMU = al massimo della frequenza possibile
+
+
+In Blimp_V2 è dove è rimasta la funzione blimp_to_world_RF **ORIGINALE**, anche nella stessa cartella trovi un Astar dentro che funzionava in teoria.
+
+

@@ -251,8 +251,8 @@ def reject_outliers(data, m = 2.):
 
 
 def TDoA_dt(ts):
-    t6_rx1 = float(int( ts[0], 2 )) * 15.65e-12
-    t1_rx1 = float(int( ts[1],2  )) * 15.65e-12
+    t6_rx1 = float(int(ts[0],2)) * 15.65e-12
+    t1_rx1 = float(int(ts[1],2)) * 15.65e-12
     t2_rx1 = float(int(ts[2],2)) * 15.65e-12
     t3_rx1 = float(int(ts[3],2)) * 15.65e-12
     t4_rx1 = float(int(ts[4],2)) * 15.65e-12
