@@ -391,7 +391,7 @@ class kalman_blimp:
 # Example of how use the code for the Kalman filter
 if __name__ == "__main__":
 
-    kal = kalman_blimp(dt = 0.1, Fl = 1,  Fr = 1 , Fu = 0.0012, phi_pos=0.0)
+    kal = kalman_blimp(dt = 0.1, Fl = 0.15,  Fr = 0.15 , Fu = 0.0012, phi_pos=0.0)
     # When the class is initialized, here I can insert the intial coordinate
     # for position and orientation in Global reference frame. 
 

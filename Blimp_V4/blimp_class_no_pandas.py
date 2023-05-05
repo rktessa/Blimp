@@ -11,7 +11,7 @@ from math import dist
 import cv2
 from scipy.linalg import block_diag
 from filterpy.common import Q_discrete_white_noise
-
+import csv
 
 
 
@@ -132,7 +132,10 @@ def calibration(magnetic):
     """
     magnetic = np.array(magnetic, dtype=float).flatten() #Convert the measure in a numpy array
     
-    df = pd.read_csv('data.csv')
+    #df = pd.read_csv('data.csv')
+
+    with open('data.csv', mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
     
     # Hard Iron Vector
     b = np.array([df.iloc[0,1], df.iloc[0,2], df.iloc[0,3]])
