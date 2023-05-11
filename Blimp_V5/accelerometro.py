@@ -15,7 +15,7 @@ import threading
 import board
 from adafruit_icm20x import ICM20948, MagDataRate
 
-#Definizione di tutti i pin per uso
+#Definizione di tutti i pin per uso prova
 m1 = 17 #sinistro
 m1_i = 27
 m2 = 13  #destro
