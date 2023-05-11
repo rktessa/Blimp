@@ -2,27 +2,18 @@
 import warnings
 import time
 import numpy as np
-from numpy.linalg import norm, inv
+from numpy.linalg import norm
 from quaternion import Quaternion
 import pandas as pd
 from matplotlib import pyplot as plt
 import math
 from math import dist
 import cv2
-from scipy.linalg import block_diag
-from filterpy.common import Q_discrete_white_noise
 
 
 
 
 # FUNCTIONS AND CLASSES USED FOR ESTIMATE THE BLIMP ORIENTATION IN SPACE
-def imu_to_uwb(accelerometer, gyro, mag):
-    acc_uwb = [accelerometer[1], accelerometer[0], - accelerometer[2]]
-    gyro_uwb = [gyro[1], gyro[0], - gyro[2]]
-    mag_uwb = [mag[1], mag[0], - mag[2]]
-    return acc_uwb, gyro_uwb, mag_uwb
-
-
 
 # Conversion from rad to deg for visualization on terminal
 def rad_to_deg(roll, pitch, yaw):
@@ -115,7 +106,6 @@ class Madgwick:
         # Gyroscope compensation drift
         gyroscopeQuat = Quaternion(0, gyroscope[0], gyroscope[1], gyroscope[2])
         stepQuat = Quaternion(step.T[0], step.T[1], step.T[2], step.T[3])
-
         gyroscopeQuat = gyroscopeQuat + (q.conj() * stepQuat) * 2 * self.samplePeriod * self.zeta * -1
 
         # Compute rate of change of quaternion
@@ -559,174 +549,6 @@ class Astar():
             path.append(goal)
         return path
 
-
-#################################################################################
-# CODICE PER CONVERTIRE GLI PSI DEL MADGWICK IN UNA ROTAZIONE DI 90 GRADI ESATTI 
-#################################################################################
-def psi_map(psi):
-
-    N = 1
-    E = 90
-    S = 180
-    W = 270
-
-    if psi < 0:
-        psi = psi+360
-        
-        if N<=psi<E:
-            psi_mapped = -90/(E-N)*(psi-N)+0
-        elif E<=psi<S:
-            psi_mapped = -90/(S-E)*(psi-E)+90
-        elif S<=psi<W:
-            psi_mapped = -90/(W-S)*(psi-S)+180
-        elif W<=psi<360:
-            psi_mapped = -90/(360-W+N)*(psi-W)+270
-        elif 0<=psi<N:
-            psi_mapped = -90/(360-W+N)*(psi)+0
-    else:
-        
-        if N<=psi<E:
-            psi_mapped = 90/(E-N)*(psi-N)+0
-        elif E<=psi<S:
-            psi_mapped = 90/(S-E)*(psi-E)+90
-        elif S<=psi<W:
-            psi_mapped = 90/(W-S)*(psi-S)+180
-        elif W<=psi<360:
-            psi_mapped = 90/(360-W+N)*(psi-W)+270
-        elif 0<=psi<N:
-            psi_mapped = 90/(360-W+N)*(psi)+0
-    
-    return psi_mapped
-
-# PID FOR THE AUTONOMOUS NAVIGATION
-
-# Create object class for PID_Controller. Object contains the PID cofficients, a method for calculating
-# output signal based on system state, a method for running a system simulation based on the controller signal
-# and a method for autotuning the attributes to optimize controller performance for an input system. 
-class PID_Controller:
-    
-    # Initialize controller attributes when object is created. kp, ki, and kd are the constants for the
-    # proportional, integral, and derivative elements of the controller, respectively. Target is an input attribute
-    # which establishes the goal the controller is trying to achieve. Target is not set at object intiliazation, but
-    # is rather set as part of "running" the controller. Signal is effectively an output attribute which represents 
-    # the "current" signal being emitted from the controller. Accumulator is a attribute used to execute the integral 
-    # calculation, and last_reading is using to determine the slope for application of the derivative calculation.
-    # Max_signal is used to limit the signal request that the controller can make, and the sample_rate establishes how
-    # frequently the controller can adjust the signal. In a practical application this would equate to a 
-    # maximum speed/torque/force of a motor or actuator element and the sampling rate of a digital controller device.
-    kp = 0
-    ki = 0
-    kd = 0
-    sample_rate = 1.0/100
-    max_signal = 12 # da capire
-    target = 0 # target del pid, valore agnostico
-    
-
-    def __init__(self, kp, ki, kd, max_signal, sample_rate, target):
-        
-        if kp is not None:
-            self.kp = kp
-        if ki is not None:
-            self.ki = ki
-        if kd is not None:
-            self.kd = kd
-        if target is not None:
-            self.target = target # distanza in cm
-        if sample_rate is not None:
-            self.sample_rate = sample_rate
-        if max_signal is not None:
-            self.max_signal = max_signal # initial assumption
-
-        self.signal = 0
-        self.accumulator = 0
-        self.last_reading = 0
-        self.xa = 0.140 # in m 
-
-
-
-    # Set_new_target sets the target attribute and resets the held accumulator value. Resetting the accumulator
-    # is necessary for the integral controller to function properly.
-    def set_new_target(self, target):
-        self.accumulator = 0
-        self.target = target
-
-        # return target, accumulator;
-    
-
-    # Adjust_signal is the method that performs the actual function of the controller. This method calculates a 
-    # new signal based on the feedback_value, accumulator value, last_reading, and target. It then sets the new
-    # signal to the self.signal attribute.
-    def adjust_signal(self, feedback_value):
-        # kp = 100 #initial assumption
-        # ki = 0
-        # kd = 0
-        # Calculate the error - difference between target and feedback_value (measurement)
-        error = self.target - feedback_value
-
-        # Add error to accumulator
-        self.accumulator += error * self.sample_rate
-
-        # Calculate signal based on PID coefficients
-        self.signal = self.kp * error + self.ki * self.accumulator + self.kd * (feedback_value - self.last_reading)/self.sample_rate
-
-        # max_signal = 10000000000
-        # If calculated signal exceeds max_signal, then set signal to max_signal value. Do this in both positive
-        # and negative directions
-        if self.signal > self.max_signal:
-            self.signal = self.max_signal
-        elif self.signal < -self.max_signal:
-            self.signal = -self.max_signal
-
-        # Save current feedback_value as last_reading attribute for use in calulating next signal.
-        self.last_reading = feedback_value
-
-        return self.signal
-
-        # Run_simulation is a controller method which will simulate the output of a system object "system_simulator"
-        # over a time_period "duration."
-
-    def get_force_z(self, signal):
-        force_z = signal # Newton
-        return force_z
-
-    def get_force_lateral(self, signal_distance, signal_psi):
-        force_L = (signal_distance*self.xa + signal_psi)/(2 * self.xa) # Newton
-        force_R = (signal_distance*self.xa - signal_psi)/(2 * self.xa) # Newton
-        return force_L, force_R
-
-    # Le funzioni PWM dovrebbero darmi dei valori da 0 a 100 di motore 
-    # Se il signal = 12, la forza = 12 N e voglio una PWM di 100
-    def pwm_z_motor(self, force_z):
-        max_z_force = 0.1
-        m_coefficient = 100/max_z_force #  da specificare per ogni motore
-        pwm_z = (force_z * m_coefficient) 
-        if pwm_z > 100:
-            pwm_z = 100
-        elif pwm_z < -100:
-            pwm_z = -100
-        return pwm_z
-
-    def pwm_L_motor(self, force_L):
-        max_L_force = 0.1
-        m_coefficient = 100/max_L_force # da specificare per ogni motore
-        pwm_L = (force_L * m_coefficient) 
-        if pwm_L > 100:
-            pwm_L = 100
-        elif pwm_L < -100:
-            pwm_L = -100
-        return pwm_L
-
-    def pwm_R_motor(self, force_R):
-        max_R_force = 0.1
-        m_coefficient = 100/max_R_force # da specificare per ogni motore
-        pwm_R = (force_R * m_coefficient) 
-        if pwm_R > 100:
-            pwm_R = 100
-        elif pwm_R < -100:
-            pwm_R = -100
-        return pwm_R
-
-
 # Kalman filter
 
 def reshape_z(z, dim_z, ndim):
@@ -1033,3 +855,233 @@ class kalman_blimp:
         return x, P
 
 
+#################################################################################
+# CODICE PER CONVERTIRE GLI PSI DEL MADGWICK IN UNA ROTAZIONE DI 90 GRADI ESATTI 
+#################################################################################
+def psi_map(psi):
+
+    N = 13
+    E = 103
+    S = 210
+    W = 293
+
+    E_new = N+90
+    S_new = N+180
+    W_new = N+270
+
+    if N<=psi<E:
+        psi_mapped = 90/(E-N)*(psi-N)+N
+    elif E<=psi<S:
+        psi_mapped = 90/(S-E)*(psi-E)+E_new
+    elif S<=psi<W:
+        psi_mapped = 90/(W-S)*(psi-S)+S_new
+    elif W<=psi<360:
+        psi_mapped = 90/(360-W+N)*(psi-W)+W_new
+    elif 0<=psi<N:
+            psi_mapped = 90/(360-W+N)*(psi)+0
+    
+    return psi_mapped
+
+# PID FOR THE AUTONOMOUS NAVIGATION
+
+# Create object class for PID_Controller. Object contains the PID cofficients, a method for calculating
+# output signal based on system state, a method for running a system simulation based on the controller signal
+# and a method for autotuning the attributes to optimize controller performance for an input system. 
+class PID_Controller:
+    
+    # Initialize controller attributes when object is created. kp, ki, and kd are the constants for the
+    # proportional, integral, and derivative elements of the controller, respectively. Target is an input attribute
+    # which establishes the goal the controller is trying to achieve. Target is not set at object intiliazation, but
+    # is rather set as part of "running" the controller. Signal is effectively an output attribute which represents 
+    # the "current" signal being emitted from the controller. Accumulator is a attribute used to execute the integral 
+    # calculation, and last_reading is using to determine the slope for application of the derivative calculation.
+    # Max_signal is used to limit the signal request that the controller can make, and the sample_rate establishes how
+    # frequently the controller can adjust the signal. In a practical application this would equate to a 
+    # maximum speed/torque/force of a motor or actuator element and the sampling rate of a digital controller device.
+    kp = 0
+    ki = 0
+    kd = 0
+    sample_rate = 1.0/100
+    max_signal = 12 # da capire
+    target = 0 # target del pid, valore agnostico
+    
+
+    def __init__(self, kp, ki, kd, max_signal, sample_rate, target):
+        
+        if kp is not None:
+            self.kp = kp
+        if ki is not None:
+            self.ki = ki
+        if kd is not None:
+            self.kd = kd
+        if target is not None:
+            self.target = target # distanza in cm
+        if sample_rate is not None:
+            self.sample_rate = sample_rate
+        if max_signal is not None:
+            self.max_signal = max_signal # initial assumption
+
+        self.signal = 0
+        self.accumulator = 0
+        self.last_reading = 0
+        self.xa = 0.140 # in m 
+
+
+
+    # Set_new_target sets the target attribute and resets the held accumulator value. Resetting the accumulator
+    # is necessary for the integral controller to function properly.
+    def set_new_target(self, target):
+        self.accumulator = 0
+        self.target = target
+
+        # return target, accumulator;
+    
+
+    # Adjust_signal is the method that performs the actual function of the controller. This method calculates a 
+    # new signal based on the feedback_value, accumulator value, last_reading, and target. It then sets the new
+    # signal to the self.signal attribute.
+    def adjust_signal(self, feedback_value):
+        # kp = 100 #initial assumption
+        # ki = 0
+        # kd = 0
+        # Calculate the error - difference between target and feedback_value (measurement)
+        error = self.target - feedback_value
+
+        # Add error to accumulator
+        self.accumulator += error * self.sample_rate
+
+        # Calculate signal based on PID coefficients
+        self.signal = self.kp * error + self.ki * self.accumulator + self.kd * (feedback_value - self.last_reading)/self.sample_rate
+
+        # max_signal = 10000000000
+        # If calculated signal exceeds max_signal, then set signal to max_signal value. Do this in both positive
+        # and negative directions
+        if self.signal > self.max_signal:
+            self.signal = self.max_signal
+        elif self.signal < -self.max_signal:
+            self.signal = -self.max_signal
+
+        # Save current feedback_value as last_reading attribute for use in calulating next signal.
+        self.last_reading = feedback_value
+
+        return self.signal
+
+        # Run_simulation is a controller method which will simulate the output of a system object "system_simulator"
+        # over a time_period "duration."
+
+    def get_force_z(self, signal):
+        force_z = signal # Newton
+        return force_z
+
+    def get_force_lateral(self, signal_distance, signal_psi):
+        force_L = (signal_distance*self.xa - signal_psi)/(2 * self.xa) # Newton
+        force_R = (signal_distance*self.xa + signal_psi)/(2 * self.xa) # Newton
+        return force_L, force_R
+
+    # Le funzioni PWM dovrebbero darmi dei valori da 0 a 100 di motore 
+    # Se il signal � 12, la forza � 12 N e voglio una PWM di 100
+    def pwm_z_motor(self, force_z):
+        max_z_force = 0.1
+        m_coefficient = 100/max_z_force #  da specificare per ogni motore
+        pwm_z = (force_z * m_coefficient) 
+
+        pwm_z_limit = 40
+
+        if pwm_z > pwm_z_limit:
+            pwm_z = pwm_z_limit
+        elif pwm_z < -pwm_z_limit:
+            pwm_z = -pwm_z_limit
+        return pwm_z
+
+    def pwm_L_motor(self, force_L):
+        max_L_force = 0.1
+        m_coefficient = 100/max_L_force # da specificare per ogni motore
+        pwm_L = (force_L * m_coefficient) 
+
+        pwm_L_limit = 40
+
+        if pwm_L > pwm_L_limit:
+            pwm_L = pwm_L_limit
+        elif pwm_L < -pwm_L_limit:
+            pwm_L = -pwm_L_limit
+        return pwm_L
+
+    def pwm_R_motor(self, force_R):
+        max_R_force = 0.1
+        m_coefficient = 100/max_R_force # da specificare per ogni motore
+        pwm_R = (force_R * m_coefficient) 
+
+        pwm_R_limit = 40
+
+        if pwm_R > pwm_R_limit:
+            pwm_R = pwm_R_limit
+        elif pwm_R < -pwm_R_limit:
+            pwm_R = -pwm_R_limit
+        return pwm_R
+
+
+class ReadLine:
+    def __init__(self, s):
+        self.buf = bytearray()
+        self.s = s
+    
+    def readline(self):
+        i = self.buf.find(b"\n")
+        if i >= 0:
+            r = self.buf[:i+1]
+            self.buf = self.buf[i+1:]
+            return r
+        while True:
+            i = max(1, min(2048, self.s.in_waiting))
+            data = self.s.read(i)
+            i = data.find(b"\n")
+            if i >= 0:
+                r = self.buf + data[:i+1]
+                self.buf[0:] = data[i+1:]
+                return r
+            else:
+                self.buf.extend(data)
+
+
+def psi_mean(psi_list,psi_meas):
+    sum_psi = 0
+    for i in range(len(psi_list)):
+        sum_psi = sum_psi + (psi_list[i] - psi_meas)**2
+    
+    if sum_psi/len(psi_list) >= 50:
+        psi = psi_meas
+    else:
+        psi = sum(psi_list)/len(psi_list)
+    
+    return psi
+
+def imu_to_uwb(accelerometer, gyro, mag):
+    acc_uwb = [accelerometer[1], accelerometer[0], - accelerometer[2]]
+    gyro_uwb = [gyro[1], gyro[0], - gyro[2]]
+    mag_uwb = [mag[1], mag[0], - mag[2]]
+    return acc_uwb, gyro_uwb, mag_uwb
+
+def Rx(theta):
+  return np.matrix([[ 1, 0           , 0           ],
+                   [ 0, math.cos(theta),-math.sin(theta)],
+                   [ 0, math.sin(theta), math.cos(theta)]])
+  
+def Ry(theta):
+  return np.matrix([[ math.cos(theta), 0, math.sin(theta)],
+                   [ 0           , 1, 0           ],
+                   [-math.sin(theta), 0, math.cos(theta)]])
+  
+def Rz(theta):
+  return np.matrix([[ math.cos(theta), -math.sin(theta), 0 ],
+                   [ math.sin(theta), math.cos(theta) , 0 ],
+                   [ 0           , 0            , 1 ]])
+
+def rotation_UWB(acc, gyro, angles):
+    
+    R = Rz(angles[2])@Ry(angles[1])@Rx(angles[0])
+
+    acc_UWB = R@acc
+
+    gyro_UWB = R@gyro
+    
+    return acc_UWB, gyro_UWB
