@@ -2,16 +2,14 @@
 import warnings
 import time
 import numpy as np
-from numpy.linalg import norm, inv
+from numpy.linalg import norm
 from quaternion import Quaternion
 import pandas as pd
 from matplotlib import pyplot as plt
 import math
-from math import dist
+from math import dist, cos, sin
 import cv2
-from scipy.linalg import block_diag
-from filterpy.common import Q_discrete_white_noise
-import csv
+
 
 
 
@@ -35,7 +33,7 @@ def rad_to_deg(roll, pitch, yaw):
 class Madgwick:
     samplePeriod = 1/100
     quaternion = Quaternion(0, 0, 1, 0)
-    beta = 0.35 # Questo  il nuovo beta usato per far funzionare meglio il Madgwick. valori di stabilit oscillano sui 3 gradi 
+    beta = 0.35 # Questo � il nuovo beta usato per far funzionare meglio il Madgwick. valori di stabilit� oscillano sui 3 gradi 
     zeta = 0
 
     def __init__(self, sampleperiod=None, quaternion=None, beta=None, zeta=None):
@@ -132,10 +130,7 @@ def calibration(magnetic):
     """
     magnetic = np.array(magnetic, dtype=float).flatten() #Convert the measure in a numpy array
     
-    #df = pd.read_csv('data.csv')
-
-    with open('data.csv', mode='r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
+    df = pd.read_csv('data.csv')
     
     # Hard Iron Vector
     b = np.array([df.iloc[0,1], df.iloc[0,2], df.iloc[0,3]])
@@ -561,35 +556,24 @@ class Astar():
 #################################################################################
 def psi_map(psi):
 
-    N = 1
-    E = 90
-    S = 180
-    W = 270
+    N = 50
+    E = 155
+    S = 248
+    W = 330
 
-    if psi < 0:
-        psi = psi+360
-        
-        if N<=psi<E:
-            psi_mapped = -90/(E-N)*(psi-N)+0
-        elif E<=psi<S:
-            psi_mapped = -90/(S-E)*(psi-E)+90
-        elif S<=psi<W:
-            psi_mapped = -90/(W-S)*(psi-S)+180
-        elif W<=psi<360:
-            psi_mapped = -90/(360-W+N)*(psi-W)+270
-        elif 0<=psi<N:
-            psi_mapped = -90/(360-W+N)*(psi)+0
-    else:
-        
-        if N<=psi<E:
-            psi_mapped = 90/(E-N)*(psi-N)+0
-        elif E<=psi<S:
-            psi_mapped = 90/(S-E)*(psi-E)+90
-        elif S<=psi<W:
-            psi_mapped = 90/(W-S)*(psi-S)+180
-        elif W<=psi<360:
-            psi_mapped = 90/(360-W+N)*(psi-W)+270
-        elif 0<=psi<N:
+    E_new = N+90
+    S_new = N+180
+    W_new = N+270
+
+    if N<=psi<E:
+        psi_mapped = 90/(E-N)*(psi-N)+N
+    elif E<=psi<S:
+        psi_mapped = 90/(S-E)*(psi-E)+E_new
+    elif S<=psi<W:
+        psi_mapped = 90/(W-S)*(psi-S)+S_new
+    elif W<=psi<360:
+        psi_mapped = 90/(360-W+N)*(psi-W)+W_new
+    elif 0<=psi<N:
             psi_mapped = 90/(360-W+N)*(psi)+0
     
     return psi_mapped
@@ -686,346 +670,117 @@ class PID_Controller:
         return force_z
 
     def get_force_lateral(self, signal_distance, signal_psi):
-        force_L = (signal_distance*self.xa + signal_psi)/(2 * self.xa) # Newton
-        force_R = (signal_distance*self.xa - signal_psi)/(2 * self.xa) # Newton
+        force_L = (signal_distance*self.xa - signal_psi)/(2 * self.xa) # Newton
+        force_R = (signal_distance*self.xa + signal_psi)/(2 * self.xa) # Newton
         return force_L, force_R
 
     # Le funzioni PWM dovrebbero darmi dei valori da 0 a 100 di motore 
-    # Se il signal = 12, la forza = 12 N e voglio una PWM di 100
+    # Se il signal � 12, la forza � 12 N e voglio una PWM di 100
     def pwm_z_motor(self, force_z):
         max_z_force = 0.1
         m_coefficient = 100/max_z_force #  da specificare per ogni motore
         pwm_z = (force_z * m_coefficient) 
-        if pwm_z > 100:
-            pwm_z = 100
-        elif pwm_z < -100:
-            pwm_z = -100
+
+        pwm_z_limit = 40
+
+        if pwm_z > pwm_z_limit:
+            pwm_z = pwm_z_limit
+        elif pwm_z < -pwm_z_limit:
+            pwm_z = -pwm_z_limit
         return pwm_z
 
     def pwm_L_motor(self, force_L):
         max_L_force = 0.1
         m_coefficient = 100/max_L_force # da specificare per ogni motore
         pwm_L = (force_L * m_coefficient) 
-        if pwm_L > 100:
-            pwm_L = 100
-        elif pwm_L < -100:
-            pwm_L = -100
+
+        pwm_L_limit = 40
+
+        if pwm_L > pwm_L_limit:
+            pwm_L = pwm_L_limit
+        elif pwm_L < -pwm_L_limit:
+            pwm_L = -pwm_L_limit
         return pwm_L
 
     def pwm_R_motor(self, force_R):
         max_R_force = 0.1
         m_coefficient = 100/max_R_force # da specificare per ogni motore
         pwm_R = (force_R * m_coefficient) 
-        if pwm_R > 100:
-            pwm_R = 100
-        elif pwm_R < -100:
-            pwm_R = -100
+
+        pwm_R_limit = 40
+
+        if pwm_R > pwm_R_limit:
+            pwm_R = pwm_R_limit
+        elif pwm_R < -pwm_R_limit:
+            pwm_R = -pwm_R_limit
         return pwm_R
 
 
-# Kalman filter
-
-def reshape_z(z, dim_z, ndim):
-    """ ensure z is a (dim_z, 1) shaped vector"""
-
-    z = np.atleast_2d(z)
-    if z.shape[1] == dim_z:
-        z = z.T
-
-    if z.shape != (dim_z, 1):
-        raise ValueError('z must be convertible to shape ({}, 1)'.format(dim_z))
-
-    if ndim == 1:
-        z = z[:, 0]
-
-    if ndim == 0:
-        z = z[0, 0]
-
-    return z
-
-
-
-
-
-
-
-
-# Definition of the matrices used in 
-# Kalman filter
-class kalman_blimp:
-    c = 1.60/2.0 # m half lenght of blimp on x axis
-    b = 0.40/2.0 # m half lenght of blimp on y axis
-    dt = 1 
-    xR = 0.0675 # m distance of R motor from CG
-    xL = 0.0675 # m distance of R motor from CG
-    m = 0.2713 # kg total mass of airship
-    I_z = m *(c*c + b*b)/5 # inertia
-    Fl = 0.0 # N forces of the motors
-    Fr = 0.0
-    Fu = 0.0
-    x_pos = 0.0
-    y_pos = 0.0
-    z_pos  = 0.0 
-    phi_pos = 0.0
-
-
-    def __init__(self, dt=None, Fl= None, Fr=None, Fu=None, x_pos=None, y_pos=None, z_pos=None, phi_pos=None):
-        """
-        Initialize the class with the given parameters.
-        :param dt: The sample period
-        :return:
-        """
-        if dt is not None:
-            self.dt = dt
-        if Fl is not None:
-            self.Fl = Fl
-        if Fr is not None:
-            self.Fr = Fr
-        if Fu is not None:
-            self.Fu = Fu
-        if x_pos is not None:
-            self.x_pos = x_pos
-        if y_pos is not None:
-            self.y_pos = y_pos
-        if x_pos is not None:
-            self.z_pos = z_pos
-        if x_pos is not None:
-            self.phi_pos = phi_pos
-       
-    def initialization(self):
-        
-        # State vector is x = [x, x'', y, y'', z, z'', phi, phi' ]
-        # at the beginning is initialized with the value for position
-        # measured by sonar, madgwick and uwbz
-        x = np.transpose(np.array([self.x_pos, 0.0, self.y_pos, 0.0, self.z_pos, 0.0, self.phi_pos, 0.0]))
-
-        F = np.array([[1.0, (self.dt*self.dt)/2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
-                    [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 
-                    [0.0, 0.0, 1.0, (self.dt*self.dt)/2.0, 0.0, 0.0, 0.0, 0.0 ],
-                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 ],
-                    [0.0, 0.0, 0.0, 0.0, 1.0, (self.dt*self.dt)/2.0, 0.0, 0.0 ],
-                    [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 ], 
-                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, self.dt],
-                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
-
-        '''B = np.array([[0.0, 0.0, 0.0],
-                    [1.0/self.m, 1.0/self.m, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0/self.m],
-                    [0.0, 0.0, 0.0],
-                    [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])'''
-        B = np.array([[0.0, 0.0, 0.0],
-                    [math.cos(self.phi_pos)/self.m, math.cos(self.phi_pos)/self.m, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [math.sin(self.phi_pos)/self.m, math.sin(self.phi_pos)/self.m, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0/self.m],
-                    [0.0, 0.0, 0.0],
-                    [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])
-
-        
-
-        u_t =  np.transpose(np.array([self.Fl, self.Fr, self.Fu])) #input vector depending on force
-
-        
-        
-        #State covariance matrix
-        # maybe in P it is better to put a rad and rad/s value for phi and phi vel.
-        P = np.diag([0.0064, 0.0005, 0.0030, 0.0007, 0.00034, 0.002, 0.00015, 0.0000012])
-        # Q calcolata a caso al momento
-        #Q =  np.diag([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ])
-
-        Q = Q_discrete_white_noise(dim=2, dt=0.5, var=1, block_size=4)
-        #Q = block_diag(q, q)
-        print(Q)
-
-        # H is an Identity matrix beacuse all the quantities are directly measured by
-        # a dedicated sensor
-        H = np.diag([1., 1., 1., 1., 1., 1., 1., 1. ])
-
-        R = np.diag([0.0575, 0.0045, 0.0267, 0.0064, 0.0027, 0.0176, 0.0013, 0.000011])
-        #R = np.diag([0.09, 0.0005, 0.09, 0.0007, 0.09, 0.002, 0.00015, 0.0000012])
-        
-        return F, B, u_t ,x, P, Q, H, R
-
-    def predict_kal(self, x, P, F=1, Q=0, u=0, B=1, alpha=1.):
-        """
-        Predict next state (prior) using the Kalman filter state propagation
-        equations.
-
-        Parameters
-        ----------
-
-        x : numpy.array
-            State estimate vector
-
-        P : numpy.array
-            Covariance matrix
-
-        F : numpy.array()
-            State Transition matrix
-
-        Q : numpy.array, Optional
-            Process noise matrix
-
-
-        u : numpy.array, Optional, default 0.
-            Control vector. If non-zero, it is multiplied by B
-            to create the control input into the system.
-
-        B : numpy.array, optional, default 0.
-            Control transition matrix.
-
-        alpha : float, Optional, default=1.0
-            Fading memory setting. 1.0 gives the normal Kalman filter, and
-            values slightly larger than 1.0 (such as 1.02) give a fading
-            memory effect - previous measurements have less influence on the
-            filter's estimates. This formulation of the Fading memory filter
-            (there are many) is due to Dan Simon
-
-        Returns
-        -------
-
-        x : numpy.array
-            Prior state estimate vector
-
-        P : numpy.array
-            Prior covariance matrix
-        """
-
-        if np.isscalar(F):
-            F = np.array(F)
-
-        phi = x[6]
-        
-
-        B2 = np.array([[0.0, 0.0, 0.0],
-                    [math.cos(phi)/self.m, math.cos(phi)/self.m, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [math.sin(phi)/self.m, math.sin(phi)/self.m, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0/self.m],
-                    [0.0, 0.0, 0.0],
-                    [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])
-        
-        #x_pre = np.dot(R,F)
-        #x = np.dot(x_pre, x) + np.dot(B, u)
-        
-        x = np.matmul(F, x) + np.matmul(B2, u)
-        P = (alpha * alpha) * np.matmul(np.matmul(F, P), F.T) + Q
-        # write in a csv file the x at each iteration
-        return x, P
+class ReadLine:
+    def __init__(self, s):
+        self.buf = bytearray()
+        self.s = s
     
-    def update_kal(self, x, P, z, R, H=None, return_all=False):
-        """Add a new measurement (z) to the Kalman filter. If z is None, nothing
-        is changed.
-
-        This can handle either the multidimensional or unidimensional case. If
-        all parameters are floats instead of arrays the filter will still work,
-        and return floats for x, P as the result.
-
-        update(1, 2, 1, 1, 1)  # univariate
-        update(x, P, 1
-
-
-
-        Parameters
-        ----------
-
-        x : numpy.array(dim_x, 1), or float
-            State estimate vector
-
-        P : numpy.array(dim_x, dim_x), or float
-            Covariance matrix
-
-        z : (dim_z, 1): array_like
-            measurement for this update. z can be a scalar if dim_z is 1,
-            otherwise it must be convertible to a column vector.
-
-        R : numpy.array(dim_z, dim_z), or float
-            Measurement noise matrix
-
-        H : numpy.array(dim_x, dim_x), or float, optional
-            Measurement function. If not provided, a value of 1 is assumed.
-
-        return_all : bool, default False
-            If true, y, K, S, and log_likelihood are returned, otherwise
-            only x and P are returned.
-
-        Returns
-        -------
-
-        x : numpy.array
-            Posterior state estimate vector
-
-        P : numpy.array
-            Posterior covariance matrix
-
-        y : numpy.array or scalar
-            Residua. Difference between measurement and state in measurement space
-
-        K : numpy.array
-            Kalman gain
-
-        S : numpy.array
-            System uncertainty in measurement space
-
-        log_likelihood : float
-            log likelihood of the measurement"""
-
-        #pylint: disable=bare-except
-
-        if z is None:
-            if return_all:
-                return x, P, None, None, None, None
-            return x, P
-
-        if H is None:
-            H = np.diag([1., 1., 1., 1., 1., 1., 1., 1. ])
-
-        if np.isscalar(H):
-            H = np.array([H])
-
-        Hx = np.atleast_1d(np.matmul(H, x))
-        z = reshape_z(z, Hx.shape[0], x.ndim)
-
-        # error (residual) between measurement and prediction
-        y = z - Hx
-
-        # project system uncertainty into measurement space
-        S = np.matmul(np.matmul(H, P), H.T) + R
-        #print(S)
-        #print(1./S)
-        #print(inv(S))
+    def readline(self):
+        i = self.buf.find(b"\n")
+        if i >= 0:
+            r = self.buf[:i+1]
+            self.buf = self.buf[i+1:]
+            return r
+        while True:
+            i = max(1, min(2048, self.s.in_waiting))
+            data = self.s.read(i)
+            i = data.find(b"\n")
+            if i >= 0:
+                r = self.buf + data[:i+1]
+                self.buf[0:] = data[i+1:]
+                return r
+            else:
+                self.buf.extend(data)
 
 
-        # map system uncertainty into kalman gain
-        try:
-            K = np.matmul(np.matmul(P, H.T), inv(S))
-        except:
-            # can't invert a 1D array, annoyingly
-            K = np.matmul(np.matmul(P, H.T), 1./S)
+def psi_mean(psi_list,psi_meas):
+    sum_psi = 0
+    for i in range(len(psi_list)):
+        sum_psi = sum_psi + (psi_list[i] - psi_meas)**2
+    
+    if sum_psi/len(psi_list) >= 50:
+        psi = psi_meas
+    else:
+        psi = sum(psi_list)/len(psi_list)
+    
+    return psi
 
+def imu_to_uwb(accelerometer, gyro, mag):
+    acc_uwb = [accelerometer[1], accelerometer[0], - accelerometer[2]]
+    gyro_uwb = [gyro[1], gyro[0], - gyro[2]]
+    mag_uwb = [mag[1], mag[0], - mag[2]]
+    return acc_uwb, gyro_uwb, mag_uwb
 
-        # predict new x with residual scaled by the kalman gain
-        x = x + np.matmul(K, y)
+def Rx(theta):
+  return np.matrix([[ 1, 0           , 0           ],
+                   [ 0, math.cos(theta),-math.sin(theta)],
+                   [ 0, math.sin(theta), math.cos(theta)]])
+  
+def Ry(theta):
+  return np.matrix([[ math.cos(theta), 0, math.sin(theta)],
+                   [ 0           , 1, 0           ],
+                   [-math.sin(theta), 0, math.cos(theta)]])
+  
+def Rz(theta):
+  return np.matrix([[ math.cos(theta), -math.sin(theta), 0 ],
+                   [ math.sin(theta), math.cos(theta) , 0 ],
+                   [ 0           , 0            , 1 ]])
 
-        # P = (I-KH)P(I-KH)' + KRK'
-        KH = np.matmul(K, H)
+def rotation_UWB(acc, gyro, angles):
+    
+    R = np.transpose(Rz(angles[2]*np.pi/180)@Ry(angles[1]*np.pi/180)@Rx(angles[0]*np.pi/180))
 
-        try:
-            I_KH = np.eye(KH.shape[0]) - KH
-        except:
-            I_KH = np.array([1 - KH])
-        #P = np.matmul(np.matmul(I_KH, P), I_KH.T) + np.matmul(np.matmul(K, R), K.T)
-        P = np.matmul(I_KH, P)
+    acc = np.transpose(acc)
+    gyro = np.transpose(gyro)
 
-        if return_all:
-            # compute log likelihood
-            log_likelihood = np.logpdf(z, np.matmul(H, x), S)
-            return x, P, y, K, S, log_likelihood
-        return x, P
+    acc_UWB = R@acc
 
-
+    gyro_UWB = R@gyro
+    
+    return acc_UWB, gyro_UWB

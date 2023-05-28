@@ -38,13 +38,11 @@ Important aspects to undestand for Kalman filter implementation:
 -si può lanciare un programma mentre sta andando il primo?, devo usare delle exception (?)
 
 
-- chiedere come fare tuning di Q a Santoro
+- Sistemare R e Q ==> R usando la varianza delle misure dei sensori, mentre Q capendo quanta affidabilità vogliamo dare al nostro modello
 
-- come inserire madgwick nel z per kalman, capire e inserire. ==> più che altro per il fatto che la misura del ultrasuonin è relativa al fondo. Possiamo anche non fare sensor fusion per forza. 
+- Inserire le accelerazioni misurate ruotate nel sistema di riferimento global per il kalman filter
 
-- scrivere sim blimp
-
-- provare a vedere se kalman funziona
+-
 
 
 ## PID
@@ -96,18 +94,42 @@ Inoltre la prova con una prima elica toroidale ha dato degli ottimi risultati, �
 ## Programma per la misurazione
 Un'idea interessante per gestire tutti i dati dei sensori potrebbe essere quello di scrivere un programma che integra un protocollo di comunicazione molto basilare con tutte le funzioni che abbiamo per il rilevamento dei sensori del dirigibile. Potrei provare a usare **zeroMQ** per questo scopo. 
 
+In Blimp_V3
 
 ## MADGWICK
 
     prove con diversi beta, non 1 che rende la misura troppo instabile, set a 0.35 ok, i valori oscillano in un intorno di 4 gradi circa. 
+    Se si riesce ad aumentare sopra i 10 Hz la frequenza di campionamento questo estimatore diventa molto migliore. 
 
-
-## UWB
-
-BISOGNA PER FORZA IMPLEMENTARE NEL MAIN CHE QUANDO SI STACCA IL PROGRAMMA IL SERIAL DI LETTURA DELLE ANCORE DEVE ESSERE CHIUSO ALTRIMENTI SI ROMPE TUTTO IL CODICE. 
 
 
 # LISTA DEI CODICI IN USO
+## Aggiornato  18 Maggio 2023
+
+Stiamo usando cose nella cartella V3:
+
+- **calibrazione_madgwick.py** Stampa risultati di Madgwick e Mad mappato, per calibrare a esattamente 90 gradi le rotazioni.
+
+- **calibrate_magnetometer.py** Acquisisce i dati grezzi del magnetometro per 60 secondi e fa Hard e Soft Iron calibration
+
+- **blimp_class.py** Contiene tutte le classi in uso: Astar, PID,  Madgwick, Reject Outliers, RTDoA, calibration, print calibration, trilateration, PSI mapped ==> Da inserire Kalman
+-  **lazy_client.py** codice che effettua tutte le misurazioni e le invia al computer
+
+In Blimp_muletto_V6
+
+- **lazy_server.py** contiene il codice di main_blimp.py, ma effettua i calcoli con i dati ricevuti dal blimp.
+
+- **global.py** contiene i valori che vanno salvati globalmente per essere rimandati al blimp, le PWM dei motori alla fine
+
+In Blimp class abbiamo ruotato gli assi dei dati ricevuti dalla imu in modo da passare da (x,yz)_IMU a (y,x,-z)_stanza e poi usando i valori stimati dal madgwick si calcola la rotazione giusta per le accelerazioni correggendo abbastanza bene i valori calcolati e riferendoli così al corretto sistema di riferimento.
+
+- **quaternio.py** c'è una modifica nella conversione da quat a euler per evitare errori su arcsin
+
+IN muletto_V6 
+- c'è lazy server che computa i dati e c'è una versione anche con il kalman filter dentro
+- nella versione con kalman sto acquisendo alla massima frequenza i dati, sono leggermente rallentati invece in lazyserver.py 
+
+
 ## Aggiornato 13 Aprile 2023
 
 Cartella corrente Blimp_V4 cin dentro:

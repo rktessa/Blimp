@@ -661,11 +661,11 @@ class kalman_blimp:
         # maybe in P it is better to put a rad and rad/s value for phi and phi vel.
         P = np.diag([0.0064, 0.0005, 0.0030, 0.0007, 0.00034, 0.002, 0.00015, 0.0000012])
         # Q calcolata a caso al momento
-        #Q =  np.diag([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ])
+        Q =  np.diag([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 ])
 
-        Q = Q_discrete_white_noise(dim=2, dt=0.5, var=1, block_size=4)
+        #Q = Q_discrete_white_noise(dim=2, dt=0.5, var=1, block_size=4)
         #Q = block_diag(q, q)
-        print(Q)
+        #print(Q)
 
         # H is an Identity matrix beacuse all the quantities are directly measured by
         # a dedicated sensor

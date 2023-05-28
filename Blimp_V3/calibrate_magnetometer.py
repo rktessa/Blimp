@@ -1,5 +1,5 @@
 import numpy as np
-import csv
+import pandas as pd
 from scipy import linalg
 import time
 import board
@@ -65,18 +65,9 @@ class Magnetometer(object):
         self.A_1 = np.real(self.F / np.sqrt(np.dot(n.T, np.dot(M_1, n)) - d) * linalg.sqrtm(M))
         
         # Salvare i risultati in un file "data.csv" usando pandas 
-        with open('data.csv', 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(["x", "y", "z"])
-            writer.writerow([self.b[0,0],self.b[1,0], self.b[2,0]])
-            writer.writerow([self.A_1[0,0], self.A_1[1,0], self.A_1[2,0]])
-            writer.writerow([self.A_1[0,1], self.A_1[1,1], self.A_1[2,1]])
-            writer.writerow([self.A_1[0,2], self.A_1[1,2], self.A_1[2,2]])
-
-
-        #df_cal = pd.DataFrame(np.array([[self.b[0,0], self.b[1,0], self.b[2,0]], [self.A_1[0,0], self.A_1[1,0], self.A_1[2,0]], [self.A_1[0,1], self.A_1[1,1], self.A_1[2,1]], [self.A_1[0,2], self.A_1[1,2], self.A_1[2,2]]]),
-                                #columns= ['x', 'y', 'z'])
-        #df_cal.to_csv("data.csv")
+        df_cal = pd.DataFrame(np.array([[self.b[0,0], self.b[1,0], self.b[2,0]], [self.A_1[0,0], self.A_1[1,0], self.A_1[2,0]], [self.A_1[0,1], self.A_1[1,1], self.A_1[2,1]], [self.A_1[0,2], self.A_1[1,2], self.A_1[2,2]]]),
+                                columns= ['x', 'y', 'z'])
+        df_cal.to_csv("data.csv")
         
         
         print("Soft iron transformation matrix:\n",self.A_1)
