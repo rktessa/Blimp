@@ -5,7 +5,7 @@
 # and because I consider that on the z axis the altidue must be constant during the flight
 # to avoid excessive oscillations
 # Jan 23
-# Riccardo Tessarin, Federico Marchi
+# Riccardo Tessarin
 import numpy as np
 from math import dist
 import cv2
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     a = timeit.default_timer()
     astar = Astar(m)
-    path = astar.planning(start=start, goal=goal, img=img, inter=10) #10 è 1 metro nella realtà
+    path = astar.planning(start=start, goal=goal, img=img, inter=10) #100 è 1 metro nella realtà
     path_array = np.array(path)/100.0
     print(path_array) # use path[0][0] per access specific indexon x ==> [0][i], y ==> [1][i] 
     b = timeit.default_timer()
@@ -149,6 +149,9 @@ if __name__ == "__main__":
 
 
    
+
+
+   
     for i in range(len(path)-1):
         cv2.line(img, path[i], path[i+1], (1,0,0,),1)
         
@@ -158,11 +161,11 @@ if __name__ == "__main__":
     plt.imshow(img_), plt.title('Path Planning in Mechatronics Lab')
     plt.ion()
     plt.show()
-    plt.pause(0.5)
+    plt.pause(0.1)
     #k = cv2.waitKey(0)
 
     l = 0
-    for l in range (30):
+    for l in range (100):
         img = cv2.flip(cv2.imread("C:\Volume_D\Programming\Blimp_git\Blimp\lab_meccatronica.png"),0)
         #flip = img[::-1,:,:] # revise height in (height, width, channel)
         img[img > 128] = 255
