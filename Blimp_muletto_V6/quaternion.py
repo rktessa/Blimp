@@ -87,7 +87,15 @@ class Quaternion:
         Conversion of Quaternions into Roll, Pitch and Yaw in rad
         """
         roll = (np.arctan2(-2 * (self[2] * self[3] - self[0] * self[1]), self[0] ** 2 - self[1] ** 2 - self[2] ** 2 + self[3] ** 2))
-        pitch = (np.arcsin(2 * (self[1] * self[3] + self[0] * self[1])))
+        #pitch = (np.arcsin(2 * (self[1] * self[3] + self[0] * self[1])))
+        arg_arcsin = 2 * (self[1] * self[3] + self[0] * self[1]) 
+        if arg_arcsin > 1: 
+            pitch = (np.arcsin(1)) 
+        elif arg_arcsin < -1: 
+            pitch = (np.arcsin(-1)) 
+        else: 
+            pitch = (np.arcsin(arg_arcsin))
+        
         yaw = (np.arctan2(-2 * (self[1] * self[2] - self[0] * self[3]), self[0] ** 2 + self[1] ** 2 - self[2] ** 2 - self[3] ** 2))
         
         return roll, pitch, yaw #*180/np.pi

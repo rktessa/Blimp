@@ -411,7 +411,7 @@ def calibration(magnetic):
     """
     magnetic = np.array(magnetic, dtype=float).flatten() #Convert the measure in a numpy array
     
-    df = pd.read_csv('C:\Volume_D\Programming\Blimp_git\Blimp\Blimp_muletto_V6\data.csv')
+    df = pd.read_csv(r'C:\Volume_D\Programming\Blimp_git\Blimp\Blimp_muletto_V6\data.csv')
     
     # Hard Iron Vector
     b = np.array([df.iloc[0,1], df.iloc[0,2], df.iloc[0,3]])
@@ -837,10 +837,10 @@ class Astar():
 #################################################################################
 def psi_map(psi):
 
-    N = 50
-    E = 155
-    S = 248
-    W = 330
+    N = 70
+    E = 160
+    S = 250
+    W = 340
 
     E_new = N+90
     S_new = N+180
@@ -1025,12 +1025,60 @@ def psi_mean(psi_list,psi_meas):
     for i in range(len(psi_list)):
         sum_psi = sum_psi + (psi_list[i] - psi_meas)**2
     
-    if sum_psi/len(psi_list) >= 50:
+    if sum_psi/len(psi_list) >= 50: # se la varianza è maggiore di 50
         psi = psi_meas
     else:
         psi = sum(psi_list)/len(psi_list)
     
     return psi
+
+
+def pos_mean(pos_list,pos_meas):
+    mean_pos = np.mean(pos_list)
+    flag = 0
+    #sum_pos = 0
+
+    #for i in range(len(pos_list)):
+    #    sum_pos = sum_pos + (pos_list[i] - mean_pos)**2
+    
+    #var_pos = sum_pos/len(pos_list)
+    #print(var_pos)
+    #print(pos_meas, mean_pos + 400*var_pos, mean_pos - 400*var_pos)
+    #if (pos_meas <= (mean_pos + 400*var_pos)) and (pos_meas >= (mean_pos - 400*var_pos)):
+    #    pos_list.append(pos_meas)
+    #    pos_list.pop(0)
+
+    if (pos_meas <= (mean_pos + 0.2)) and (pos_meas >= (mean_pos - 0.2)):
+        pos_list.append(pos_meas)
+        pos_list.pop(0)
+    else:
+        flag = 1
+    
+    return pos_list, flag
+
+def z_mean(z_list,z_meas):
+    mean_z = np.mean(z_list)
+    #sum_pos = 0
+
+    #for i in range(len(pos_list)):
+    #    sum_pos = sum_pos + (pos_list[i] - mean_pos)**2
+    
+    #var_pos = sum_pos/len(pos_list)
+    #print(var_pos)
+    #print(pos_meas, mean_pos + 400*var_pos, mean_pos - 400*var_pos)
+    #if (pos_meas <= (mean_pos + 400*var_pos)) and (pos_meas >= (mean_pos - 400*var_pos)):
+    #    pos_list.append(pos_meas)
+    #    pos_list.pop(0)
+
+    if (z_meas <= (mean_z + 0.2)) and (z_meas >= (mean_z - 0.2)):
+        z_list.append(z_meas)
+        z_list.pop(0)
+    else:
+        flag = 1
+    
+    return z_list, flag
+
+
 
 def imu_to_uwb(accelerometer, gyro, mag):
     acc_uwb = [accelerometer[1], accelerometer[0], - accelerometer[2]]

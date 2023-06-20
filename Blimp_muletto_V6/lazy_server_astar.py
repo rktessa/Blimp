@@ -14,36 +14,48 @@ from quaternion import Quaternion
 from sub_module import *
 import global_
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
 
-# Definizione context per zmq
-context = zmq.Context()
-socket = context.socket(zmq.SUB)
-socket.connect("tcp://192.168.1.104:5556")
-print("Mi sono connesso al Raspberry pi Blimp")
+try:
+    # Definizione context per zmq
+    context = zmq.Context()
+    socket = context.socket(zmq.SUB)
+    socket.connect("tcp://192.168.1.104:5556")
+    print("Mi sono connesso al Raspberry pi Blimp")
 
-# Subscribe to zipcode, default is Blimp
-zip_code = "Blimp"
-socket.setsockopt_string(zmq.SUBSCRIBE, zip_code)
-
+    # Subscribe to zipcode, default is Blimp
+    zip_code = "Blimp"
+    socket.setsockopt_string(zmq.SUBSCRIBE, zip_code)
+except KeyboardInterrupt:
+    print("Interrupted")
+    logging.exception("message")
+    
+    '''
+    #  Wait for next request from client
+    message = socket.recv_string()
+    zip_code, tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, mesg = message.split(",")
+    print("Received Infos for the execution of the navigation")
+    print(zip_code, tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, mesg)
+    '''    
+      
 def str_to_float():
-            message2 = socket.recv_string()
-            zip_code, tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, mesg, zpos = message2.split(",")
-            tempo = float(tempo)
-            raw_accX = float(raw_accX)
-            raw_accY = float(raw_accY)
-            raw_accZ = float(raw_accZ)
-            raw_gyrX = float(raw_gyrX)
-            raw_gyrY = float(raw_gyrY)
-            raw_gyrZ = float(raw_gyrZ)
-            raw_magX = float(raw_magX)
-            raw_magY = float(raw_magY)
-            raw_magZ = float(raw_magZ)
-            zpos = float(zpos)
-            return tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, zpos, mesg
-
-
+            try:
+                message2 = socket.recv_string()
+                zip_code, tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, mesg, zpos = message2.split(",")
+                tempo = float(tempo)
+                raw_accX = float(raw_accX)
+                raw_accY = float(raw_accY)
+                raw_accZ = float(raw_accZ)
+                raw_gyrX = float(raw_gyrX)
+                raw_gyrY = float(raw_gyrY)
+                raw_gyrZ = float(raw_gyrZ)
+                raw_magX = float(raw_magX)
+                raw_magY = float(raw_magY)
+                raw_magZ = float(raw_magZ)
+                zpos = float(zpos)
+                return tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, zpos, mesg
+            except KeyboardInterrupt:
+                print("Interrupted")
+                logging.exception("message")
 
 def blimp_to_world_rf():
     
@@ -112,7 +124,7 @@ def blimp_to_world_rf():
                 psi_mapped = psi_map(psi)
                 psi_list.append(psi_mapped) # deg
 
-                if len(psi_list) > 5:
+                if len(psi_list) > 3:
                     psi_list.pop(0)
 
                 psi_mean = sum(psi_list)/len(psi_list)
@@ -157,19 +169,54 @@ def blimp_to_world_rf():
 
 def main():
 
-    f = open("log_Blimp_00_data.txt", "w") # Here Timestep, IMU, UWB and SONAR data are stored
-    g = open("log_Blimp_navigation.txt", "w") # timestep, l_pwm, r_pwm, z_pww, distance, psi and psi_target
+    
     # ORIENTAZIONE NEL GLOBAL REFERENCE FRAME
+
     psi_0, quat_final, x_0, y_0, z_0 = blimp_to_world_rf()
     
     # Printing the final results
     print("psi_0 del blimp per il Madgwick= ", psi_0) # deg
     
+    #############################################################################################################
+    # Path Planning
     
-    # Goal position
-    x_goal = 2.5
-    y_goal = 7
+    print("Inizio path planning")
+    img = cv2.flip(cv2.imread(r"C:\Volume_D\Programming\Blimp_git\Blimp\Blimp_muletto_V6\lab_meccatronica_V2.png"),0)
+    img[img > 128] = 255
+    img[img <= 128] = 0
+    m = np.asarray(img)
+    m = cv2.cvtColor(m, cv2.COLOR_RGB2GRAY)
+    m = m.astype(float) / 255.
+    m = 1-cv2.dilate(1-m, np.ones((20, 20)))
+    img = img.astype(float)/255.
+    #############################################################################################################
+
+
+    start = (int(x_0*100),int(y_0*100))
+    #goal = (250, 200)
+
     
+    astar = Astar(m)
+    path = astar.planning(start=start, goal=goal, img=img, inter=100) #10 è 1 metro nella realtà
+    traj = np.array(path)/100.0
+    print(traj) # ==> questo è il percorso da seguire
+
+    traj_x = []
+    traj_y = []
+    
+    # Salvo in un txt la traiettoria calcolata
+    for i in range(len(traj)):
+        stringa = [str(traj[i][0]), str(traj[i][1]), "\n"]
+        traj_x.append(traj[i][0])
+        traj_y.append(traj[i][1])
+        res_a = " ".join([str(j) for j in stringa])
+        a.write(res_a)
+    a.close()
+
+    
+    # indice punto della traiettoria
+    i_traj = 0
+        
     # inizializzo x_pos e y_pos dell'UWB
     x_pos = x_0
     y_pos = y_0
@@ -185,7 +232,7 @@ def main():
     y_counter = 0
     z_counter = 0
 
-     # per UWB
+    # per UWB
     tempi_dt = np.zeros((1,6))
     # Ricezione dati da ZeroMQ
     tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, z_pos, mesg0 = str_to_float()
@@ -211,6 +258,7 @@ def main():
     z_pid = PID_Controller(kp= 0.1, ki = 0.001, kd = 0.001, max_signal =100000, sample_rate=1.0, target=z_target)
 
     #accel = []
+
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
@@ -225,8 +273,9 @@ def main():
         ts = mesg.split(" ")
         if (len(ts)!=25):
             tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, z_pos, mesg = str_to_float()
-            ts = mesg.split(" ")  
+            ts = mesg.split(" ")   
 
+        
         time_current_UWB = time.perf_counter()
         if (time_current_UWB - time_zero_UWB) >= 0.067:
 
@@ -240,6 +289,8 @@ def main():
             mag = calibration(raw_mag)
             # rotate the IMU reference frame with the UWB reference fram
             raw_acc, raw_gyr, mag = imu_to_uwb(raw_acc, raw_gyr, mag) 
+
+            
 
             # Creazione vettore input per classe madgwick
             accelerometer, gyroscope, magnetometer = np.asarray(raw_acc), np.asarray(raw_gyr), np.asarray(mag)
@@ -291,7 +342,7 @@ def main():
             if abs(x_pos_uwb) <= 25.0 and abs(y_pos_uwb) <= 25.0  and x_pos_uwb >= 0 and y_pos_uwb >= 0 :
                 x_pos = x_pos_uwb
                 y_pos = y_pos_uwb 
-            
+
             if len(x_list) < 5:
                 # last 5 x, y, z and psi measurements again a mean is performed to increase the accuracy of the measure
                 x_list.append(x_pos)
@@ -338,6 +389,7 @@ def main():
             f.write(res)
             f.write("\n")
 
+
             time_zero_UWB = time.perf_counter()
             if (time.perf_counter() - time_zero_1Hz) >= 1.0:
 
@@ -347,11 +399,12 @@ def main():
                 psi = psi_mean(psi_list,psi)
 
                 # print("State = ", x_pos, y_pos, z_pos, psi)
+                
                 # distance from the target calculation
-                goal_dist = math.sqrt((x_pos-x_goal)**2 + (y_pos - y_goal)**2)
+                goal_dist = math.sqrt((x_pos-traj[i_traj][0])**2 + (y_pos - traj[i_traj][1])**2)
                 
                 # psi target calculation
-                psi_target = (math.atan2((y_goal-y_pos), (x_goal-x_pos)))*180/np.pi # deg
+                psi_target = math.atan2((traj[i_traj][1]-y_pos), (traj[i_traj][0]-x_pos))*180/np.pi # deg
                 if psi_target < 0:
                     psi_target = psi_target + 360
                
@@ -377,11 +430,10 @@ def main():
                 ax.scatter(x_pos, y_pos, c = 'b')
                 ax.plot([x_pos,x_o], [y_pos,y_o], linestyle = '-', c = 'b')
                 ax.plot([x_pos,x_t], [y_pos,y_t], linestyle = '-', c = 'r')
-                ax.scatter(x_goal, y_goal, marker = 'x', c = 'r')
-                
+                ax.scatter(traj_x[i_traj], traj_y[i_traj], marker = 'x', c = 'r')
+                ax.scatter(traj_x[-1], traj_y[-1], marker = '*', c = 'y')
+                ax.plot(traj_x, traj_y, linestyle = ':', c = 'g')
                 plt.pause(0.05)
-
-              
                 
                 ####################################################
                 # SET INITIAL TARGET FOR PID OBJECT CLASS
@@ -400,14 +452,18 @@ def main():
                     z_pwm = z_pid.pwm_z_motor(force_z) # Questa serve per i motori
                 else:
                     z_pwm = 0
-                                
+
                 #print("z_pos, signal_z e z_pwm = ", z_pos, signal_z, z_pwm)
             
                 '''
-                if z_pwm >= 0:
-                    p1.ChangeDutyCycle(z_pwm)
-                else:
-                    p1i.ChangeDutyCycle(-z_pwm)
+                if abs(z_pos-z_target) > 0.1:
+                    if z_pwm >= 0:
+                        p1.ChangeDutyCycle(z_pwm)
+                    else:
+                        p1i.ChangeDutyCycle(-z_pwm)
+                else 
+                    p1.ChangeDutyCycle(0)
+                    p1i.ChangeDutyCycle(0)
                 '''
             
                 # Per variare il sample rate del PID controller durante la run
@@ -439,8 +495,8 @@ def main():
                     else:
                         p3i.ChangeDutyCycle(-r_pwm)
                     '''
-                else:
-                    print("Target reached: motors off")
+                elif i_traj + 1 < len(traj):
+                    i_traj = i_traj + 1
                     l_pwm = 0
                     r_pwm = 0
                     '''
@@ -449,6 +505,13 @@ def main():
                     p3.ChangeDutyCycle(r_pwm)
                     p3i.ChangeDutyCycle(-r_pwm)
                     '''
+                else:
+                    print("Target reached: switching off the motors")
+                    l_pwm = 0
+                    r_pwm = 0
+                    z_pwm = 0
+                
+
                 # Cambia il valore delle PWM globali e mandale al blimp
                 global_.pwm_left = l_pwm
                 global_.pwm_right = r_pwm
@@ -459,34 +522,33 @@ def main():
                 g.write(res_g)
                 g.write("\n")
 
+                
 
                 pwm_func()
                 
                 #print("dist, psi e psi_target = ", dist_dist, psi*180/np.pi, psi_target*180/np.pi)
-                print("psi, psi_target e goal distance = ", psi, psi_target, goal_dist)
+                print("psi, psi_target, goal distance and point number = ", psi, psi_target, goal_dist, i_traj)
                 print("l_pwm, r_pwm e z_pwm = ", l_pwm, r_pwm, z_pwm)
-                print("z_pos, z_target e z_pwm = ", z_pos, z_target, z_pwm)
-                #print("Accelerazioni ruotate", acc_abs)
+                print("z_pos e z_target = ", z_pos, z_target)
+                # print("Accelerazioni ruotate", acc_abs)
                 '''
                 # Invio della posizione per la stampa
-                zipcode = 10001
+               # zipcode = 10001
                 mes_x = x_pos
                 mes_y = y_pos
                 #socket.send_string(f"{zipcode} {mes_x} {mes_y}")
                 '''
 
                 time_zero_1Hz = time.perf_counter() 
-    plt.show() 
                   
 
 if __name__ == "__main__":
-    f = open("log_Blimp_00_data.txt", "w") # Here Timestep, IMU, UWB and SONAR data are stored
-    g = open("log_Blimp_navigation.txt", "w") # timestep, l_pwm, r_pwm, z_pww, distance, psi and psi_target
+    f = open("log_Blimp_00_data_astar.txt", "w") # Here Timestep, IMU, UWB and SONAR data are stored
+    g = open("log_Blimp_navigation_astar.txt", "w") # timestep, l_pwm, r_pwm, z_pww, distance, psi and psi_target
+    a = open("ASTAR_solution.txt", "w") # The points calculated by the A* 
    
-   
-     # 1. Madgwick
-
-     # 2. Kalman
+     # Goal setting
+    goal = (250, 200)
 
 
     '''
@@ -504,12 +566,15 @@ if __name__ == "__main__":
         print ('Serial port closed')
         print("Motors stopped") 
         f.close()
+        a.close()
         g.close()
+
         logging.exception("message")
 
     except ValueError: 
         print("Crashed :/") 
         f.close()
+        a.close()
         g.close()
         logging.exception("message")
 
@@ -518,6 +583,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Interrupted")
         f.close()
+        a.close()
         g.close()
         logging.exception("message")
         
@@ -528,6 +594,6 @@ if __name__ == "__main__":
         print("Received Infos for the execution of the navigation")
         print(zip_code, tempo, raw_accX, raw_accY, raw_accZ, raw_gyrX, raw_gyrY, raw_gyrZ, raw_magX, raw_magY, raw_magZ, mesg)
         '''    
-        #  Do some 'work'
+      
        
         
