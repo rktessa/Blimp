@@ -11,7 +11,7 @@ from numpy.linalg import norm, inv
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
-#from filterpy.kalman import predict, update
+
 
 ## PARTE CHE SERVE SOLO PER I TEST 
 #Definizione di tutti i pin per uso
@@ -69,21 +69,15 @@ def reshape_z(z, dim_z, ndim):
     return z
 
 
-
-
-
-
-
-
 # Definition of the matrices used in 
 # Kalman filter
 class kalman_blimp:
-    c = 1.60/2.0 # m half lenght of blimp on x axis
-    b = 0.40/2.0 # m half lenght of blimp on y axis
+    c = 1.66/2.0 # m half lenght of blimp on x axis
+    b = 0.553/2.0 # m half lenght of blimp on y axis radius
     dt = 1 
     xR = 0.0675 # m distance of R motor from CG
     xL = 0.0675 # m distance of R motor from CG
-    m = 0.2713 # kg total mass of airship
+    m = 0.250 # kg total mass of airship
     I_z = m *(c*c + b*b)/5 # inertia
     Fl = 0.0 # N forces of the motors
     Fr = 0.0
@@ -141,6 +135,7 @@ class kalman_blimp:
                     [0.0, 0.0, 1.0/self.m],
                     [0.0, 0.0, 0.0],
                     [self.xL*self.dt/self.I_z, -self.xR*self.dt/self.I_z, 0.0]])'''
+        # The force are rotated in the Blimp reference frame, to be considered with the IMU
         B = np.array([[0.0, 0.0, 0.0],
                     [math.cos(self.phi_pos)/self.m, math.cos(self.phi_pos)/self.m, 0.0],
                     [0.0, 0.0, 0.0],

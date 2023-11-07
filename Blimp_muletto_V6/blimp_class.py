@@ -771,10 +771,10 @@ class Astar():
                     min_distance = f+y
                     min_id = i
 
-            # Alla fine questo nodo migliore � quello che mi rimane e su cui faccio i calcoli
-            p = self.open.pop(min_id)  # Tolgo quello che vado a considerare da open e tengo per� le sue coordinate
+            # Alla fine rimane questo miglior nodo su cui faccio i calcoli
+            p = self.open.pop(min_id)  # Tolgo quello che vado a considerare da open e tengo le sue coordinate
 
-            #Controllo se in p vi � un ostacolo
+            #Controllo se in p ha un ostacolo
             if self.map[p[1], p[0]] < 0.5: #Qui il check si basa sul colore della mappa, nero = ostacolo
                 continue # In questo modo il punto con ostacolo viene tolto da open e non si sviluppano i conti su di esso.
 
@@ -791,8 +791,8 @@ class Astar():
             pts_next = pts_next1 + pts_next2
 
             for pn in pts_next: #Itero sui punti
-                # Ci sono 2 possibilit�, il punto � nuovo, oppure � gi� stato considerato
-                # per i puntinuovi
+                # Ci sono 2 casi, nuovo punto, oppure punto considerato in precedenza
+                # per i punti nuovi
                 if pn not in self.close:
                     # metto pn in open
                     self.open.append(pn)
@@ -801,7 +801,7 @@ class Astar():
                     self.g[pn] = self.g[p] + inter #La distanza da start che ha
                     self.h[pn] = self.distance(pn, goal) #quanto  distante ancora da goal
                 
-                # Se � gia in close devo controllare se la distanza g diminuisce
+                # Se  gia in close devo controllare se la distanza g diminuisce
                 elif self.g[pn] > self.g[p] + inter:
                     # In caso affermativo sostituisco con la distanza minore e cambio il parente
                     self.close[pn] = p

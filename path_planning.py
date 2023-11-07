@@ -37,11 +37,11 @@ class Astar():
         self.open.append(start) #first step of the alghorithm is put node start in open list
         self.close[start] = None
         self.g[start] = 0 # coordinate of start are at distance 0 from itself
-        self.h[start] = self.distance(start, goal) # distance from start point to goal
+        self.h[start] = self.distance(start, goal) # distance from start point to goal point
         goal_node = None
         
         while(1): #Here start the real alghorithm
-            min_distance = 9999999. #this value mast be maxed at the beginning
+            min_distance = 9999999. #this value must be maximized at the beginning
             min_id = -1 #not exist in reality this index
             for i, node in reversed(list(enumerate(self.open))): #mia modifica, prendo prima gli ultimi perchè sono tendenzialmente quelli con h minore
             #for i, node in enumerate(self.open): # controllo tutti i nodi in open
@@ -58,7 +58,8 @@ class Astar():
 
             #Controllo se in p vi è un ostacolo
             if self.map[p[1], p[0]] < 0.5: #Qui il check si basa sul colore della mappa, nero = ostacolo
-                continue # In questo modo il punto con ostacolo viene tolto da open e non si sviluppano i conti su di esso.
+                continue # to skip the current iteration of the loop
+             # In questo modo il punto con ostacolo viene tolto da open e non si sviluppano i conti su di esso.
 
             # Controllo se sono arrivato alla destinazione
             if self.distance(p, goal) < inter:
@@ -81,7 +82,7 @@ class Astar():
                     self.close[pn] = p # Associo pn al punto cui lo sto collegando
                     # Calcolo per quel punto il valore di h e g
                     self.g[pn] = self.g[p] + inter #La distanza da start che ha
-                    self.h[pn] = self.distance(pn, goal) #quanto  distante ancora da goal
+                    self.h[pn] = self.distance(pn, goal) #quanto distante ancora da goal
                 
                 # Se è gia in close devo controllare se la distanza g diminuisce
                 elif self.g[pn] > self.g[p] + inter:
@@ -90,7 +91,7 @@ class Astar():
                     self.g[pn] = self.g[p] + inter 
                     # Non serve però ricalcolare la h, quella non cambia
 
-            '''if img is not None:
+            if img is not None:
                 cv2.circle(img, (start[0], start[1]), 5, (0, 0, 1), 3)
                 cv2.circle(img, (goal[0], goal[1]), 5, (0, 1, 0), 3)
                 cv2.circle(img, p, 2, (0, 0, 1), 1)
@@ -98,7 +99,7 @@ class Astar():
                 cv2.imshow("A* Test", img_)
                 k = cv2.waitKey(1)
                 if k == 27:
-                    break'''
+                    break
 
 
         # Extract path
@@ -113,25 +114,29 @@ class Astar():
             path.append(goal)
         return path
 
+
 import timeit
 smooth = True
 if __name__ == "__main__":
     #img = cv2.flip(cv2.imread("C:\Volume_D\Programming\Blimp_git\Blimp\povo2_provaPathPlanning.png"), 0)
     img = cv2.flip(cv2.imread("C:\Volume_D\Programming\Blimp_git\Blimp\lab_meccatronica.png"),0)
+    #img = cv2.flip(cv2.imread("C:\Volume_D\Programming\Blimp_git\Blimp\Maps\labirinto.png"),0)
     #flip = img[::-1,:,:] # revise height in (height, width, channel)
     img[img > 128] = 255
     img[img <= 128] = 0
     m = np.asarray(img)
     m = cv2.cvtColor(m, cv2.COLOR_RGB2GRAY)
     m = m.astype(float) / 255.
-    m = 1-cv2.dilate(1-m, np.ones((20, 20))) #inflate for avoid the obstacle 
+    #m = 1-cv2.dilate(1-m, np.ones((20, 20))) #inflate for avoid the obstacle 
     img = img.astype(float)/255.
 
     
 
     start = (150,150) ## MY case
-    goal = (360, 760)
+    goal = (300, 860)
 
+    #start = (25,203) ## MY case wit labirinto
+    #goal = (585, 210)
     
 
     a = timeit.default_timer()
@@ -142,51 +147,17 @@ if __name__ == "__main__":
     b = timeit.default_timer()
     print("Time: ", b-a)
 
-    cv2.circle(img, (start[0], start[1]), 5, (0, 0, 1), 3)
-    cv2.circle(img, (goal[0], goal[1]), 5, (0, 1, 0), 3)
+    cv2.circle(img, (start[0], start[1]), 1, (0, 0, 1), 3)
+    cv2.circle(img, (goal[0], goal[1]), 1, (0, 1, 0), 3)
 
     path_rasp = [(150, 150), (160, 160), (160, 170), (160, 180), (160, 190), (170, 200), (180, 210), (190, 220), (200, 230), (210, 240), (220, 250), (230, 260), (240, 260), (250, 270), (260, 280), (270, 290), (280, 300), (270, 310), (260, 320), (250, 330), (240, 340), (240, 350), (240, 360), (230, 370), (220, 380), (210, 390), (200, 400), (190, 410), (190, 420), (190, 430), (200, 440), (200, 450), (190, 460), (180, 470), (180, 480), (180, 490), (180, 500), (180, 510), (180, 520), (180, 530), (180, 540), (190, 550), (200, 560), (200, 570), (210, 580), (220, 590), (230, 590), (240, 600), (250, 610), (260, 620), (270, 630), (280, 640), (290, 650), (300, 660), (310, 670), (320, 680), (330, 690), (340, 700), (350, 710), (360, 720), (360, 730), (360, 740), (360, 750), (360, 760)]
 
-
-   
-
-
-   
+    # Extract Path
+    
     for i in range(len(path)-1):
-        cv2.line(img, path[i], path[i+1], (1,0,0,),1)
-        
-        #cv2.line(img, path_rasp[i], path_rasp[i+1], (0,1,0), 1)
-    img_ = cv2.flip(img, 0)
-    #cv2.imshow("A* Test", img_)
-    plt.imshow(img_), plt.title('Path Planning in Mechatronics Lab')
-    plt.ion()
-    plt.show()
-    plt.pause(0.1)
-    #k = cv2.waitKey(0)
-
-    l = 0
-    for l in range (100):
-        img = cv2.flip(cv2.imread("C:\Volume_D\Programming\Blimp_git\Blimp\lab_meccatronica.png"),0)
-        #flip = img[::-1,:,:] # revise height in (height, width, channel)
-        img[img > 128] = 255
-        img[img <= 128] = 0
-        m = np.asarray(img)
-        m = cv2.cvtColor(m, cv2.COLOR_RGB2GRAY)
-        m = m.astype(float) / 255.
-        m = 1-cv2.dilate(1-m, np.ones((20, 20))) #inflate for avoid the obstacle 
-        img = img.astype(float)/255.
-
-        for i in range(len(path)-1):
-            cv2.line(img, path[i], path[i+1], (1,0,0,),1)
-
-        cv2.circle(img, (start[0], start[1]), 5, (0, 0, 1), 3)
-        cv2.circle(img, (goal[0], goal[1]), 5, (0, 1, 0), 3)
-        
-        cv2.circle(img, (path[l][0], path[l][1]), 5, (0, 1, 0), 3)
-
-        img_ = cv2.flip(img, 0)
-        plt.imshow(img_), plt.title('Path Planning in Mechatronics Lab')
-        plt.show()
-        plt.pause(0.1)
-        l = l+1
+        cv2.line(img, path[i], path[i+1], (1, 0, 0), 2)
+    
+    img = cv2.flip(img, 0)
+    cv2.imshow("A* Test", img)
+    k = cv2.waitKey(0)
 

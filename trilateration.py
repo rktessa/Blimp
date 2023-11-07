@@ -26,13 +26,13 @@ An = np.array(An)
 T = np.array([1., 1., 1.])
 
 # Distance from each Anchor, in the final code this parameters was computed by the UWB network
-d1 = dist(A_n1,T) + np.random.normal(loc=0.0, scale=0.05)
+d1 = dist(A_n1,T) + np.random.normal(loc=0.0, scale=0.3)
 #print('d1  = ', d1)
-d2 = dist(A_n2,T) #+ np.random.normal(loc=0.0, scale=0.05)
-d3 = dist(A_n3,T) #+ np.random.normal(loc=0.0, scale=0.05)
-d4 = dist(A_n4,T) #+ np.random.normal(loc=0.0, scale=0.05)
-d5 = dist(A_n5,T) #+ np.random.normal(loc=0.0, scale=0.05)
-d6 = dist(A_n6,T) #+ np.random.normal(loc=0.0, scale=0.05)
+d2 = dist(A_n2,T) + np.random.normal(loc=0.0, scale=0.05)
+d3 = dist(A_n3,T) + np.random.normal(loc=0.0, scale=0.05)
+d4 = dist(A_n4,T) + np.random.normal(loc=0.0, scale=0.3)
+d5 = dist(A_n5,T) + np.random.normal(loc=0.0, scale=0.05)
+d6 = dist(A_n6,T) + np.random.normal(loc=0.0, scale=0.05)
 #d7 = dist(A_n7,T) + np.random.normal(loc=0.0, scale=0.1)
 
 d = np.array([ d1, d2, d3, d4, d5, d6])
@@ -50,7 +50,7 @@ x = An[:,0]
 y = An[:,1]
 z = An[:,2]
 
-# Calculation of A and b for the case with 7 anchors
+# Calculation of A and b for the case with 6 anchors
 for c in range(1, len(x)):
     A[c-1, :] = [x[c]-x[0], y[c]-y[0], z[c]-z[0]] 
     #A[c-1, :] = [x[c]-x[0], y[c]-y[0], z[c]-z[0], 0, 0, 0]  
@@ -63,8 +63,8 @@ for c in range(1, len(x)):
  #   b[c-1] = d[0]**2 - d[c]**2 + x[c]**2 + y[c]**2 + z[c]**2 - x[0]**2 -y[0]**2 -z[0]**2
 
 
-print(A)
-print(b)
+print("A = ", A)
+print("b= ", b)
 
 # Calculation of the position with the LLS Alghorithm
 pos = np.matmul(np.linalg.pinv(A), b)/2
@@ -84,11 +84,11 @@ print('e_LS = ', e_LS )
 
 # WLS implementation
 # The W is diagonal and filled with the values of the variance of each measure
-w1 = 1/0.1**2
-w2 = 1/0.2**2
-w3=w1
+w1 = 1/0.3**2
+w2 = 1/0.05**2
+w3=w2
 w4= 1/0.3**2
-w5=w6=w1
+w5=w6=w2
 W = np.diag([w1, w2, w3, w4, w5])
 
 
