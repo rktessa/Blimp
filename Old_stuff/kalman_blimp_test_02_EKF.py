@@ -69,7 +69,7 @@ class kalman_blimp:
         if y_pos is not None:
             self.y_pos = y_pos
         
-        if x_pos is not None:
+        if phi_pos is not None:
             self.phi_pos = phi_pos
         if pwm_l is not None:
             self.pwm_l = pwm_l
