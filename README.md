@@ -1,8 +1,8 @@
 # Blimp
 A simple autonomous blimp project on Raspberry
-![alt text]([http://url/to/blimp.png](https://github.com/rktessa/Blimp/blob/main/Immagini/blimp.png))
-![alt text]([http://url/to/blimp_2.png](https://github.com/rktessa/Blimp/blob/main/Immagini/blimp_2.png))
-![alt text](https://github.com/rktessa/Blimp/blob/main/Immagini/supporto.png)
+![alt text](https://github.com/rktessa/Blimp/blob/main/Immagini/blimp.png)
+![alt text](https://github.com/rktessa/Blimp/blob/main/Immagini/blimp_2.png)
+
 
 ##  Funzione blimp_to_world_rf
 
